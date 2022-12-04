@@ -3,3 +3,12 @@ build/
 cmake-build-debug/
 cmake-build-release/
 *.rdbg
+.cache/
+.cmake/
+CMakeCache.txt
+CMakeFiles/
+buildtool/
+compile_commands.json
+ctime.exe
+docs/
+

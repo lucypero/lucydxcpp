@@ -1,10 +1,8 @@
-/* vertex attributes go here to input to the vertex shader */
 struct vs_in {
     float3 position_local : POS;
     float3 color : COL;
 };
 
-/* outputs from vertex shader go here. can be interpolated to pixel shader */
 struct vs_out {
     float4 position_clip : SV_POSITION; // required output of VS
     float4 color : COL;

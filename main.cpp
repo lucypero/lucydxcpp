@@ -9,14 +9,107 @@
 #include <d3dcompiler.h>
 #include <windows.h>
 
-#include <cmath>// sin, cos for rotation
+// use this later
+#if 0
+#include "DirectXMath.h"
+#include "DirectXPackedVector.h"
+#endif
 
 #include <cassert>
 
+// my types
+#include <stdint.h>
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef float f32;
+typedef double f64;
+
 #define TITLE "lucydxcpp"
 
-void log(const char *str) {
-    OutputDebugStringA(str);
+const u32 WINDOW_WIDTH = 1280;
+const u32 WINDOW_HEIGHT = 720;
+
+// total memory allocated
+#define TOTAL_MEM (10 * 1024)
+
+#define log OutputDebugStringA
+
+struct Buf {
+    void *buf;
+    u64 size;
+};
+
+enum LucyResult {
+    LRES_OK = 0,
+    LRES_FAIL = 1
+};
+
+struct ProgramState {
+    void *base_mem;
+    u64 total_mem_size;
+};
+
+struct Arena {
+    u8 *buf;
+    u64 pointer;
+    u64 size;
+};
+
+void *arena_push(Arena *arena, u64 size) {
+    void* ret_buf = arena->buf + arena->pointer;
+
+    arena->pointer += size;
+
+    // checking that u have enough mem in the arena
+    assert(arena->pointer <= arena->size);
+
+    return ret_buf;
+}
+
+void arena_clear(Arena *arena) {
+    arena->pointer = 0;
+}
+
+void arena_zero(Arena *arena) {
+    arena->pointer = 0;
+    memset(arena->buf, 0, arena->size);
+}
+
+//this allocs a buffer w the file contents
+LucyResult read_whole_file(Arena *arena, const char *file_path, Buf *out_buf) {
+    HANDLE hTextFile = CreateFileA(file_path, GENERIC_READ, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    LucyResult ret = LRES_OK;
+
+    if (hTextFile == INVALID_HANDLE_VALUE) {
+        return LRES_FAIL;
+    }
+
+    DWORD dwFileSize = GetFileSize(hTextFile, &dwFileSize);
+
+    if (dwFileSize == 0) {
+        ret = LRES_FAIL;
+    }
+
+    DWORD dwBytesRead;
+    void *file_buffer = arena_push(arena, dwFileSize);
+    BOOL res = ReadFile(hTextFile, file_buffer, dwFileSize, &dwBytesRead, NULL);
+
+    if (res == 0) {
+        ret = LRES_FAIL;
+    }
+
+    CloseHandle(hTextFile);
+
+    out_buf->buf = file_buffer;
+    out_buf->size = (int) dwFileSize;
+
+    return ret;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -39,7 +132,21 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
 
-    log("hello\n");
+    // allocate all memory for the whole game
+    void *base_mem = VirtualAlloc(0, TOTAL_MEM, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    assert(base_mem != 0);
+
+    ProgramState program_state = {
+            .base_mem = base_mem,
+            .total_mem_size = TOTAL_MEM,
+    };
+
+    //now i make an arena..?
+    Arena big_arena = {
+            .buf = (u8*)base_mem,
+            .pointer = 0,
+            .size = TOTAL_MEM,
+    };
 
     WNDCLASSEXA wndClassEx = {sizeof(wndClassEx)};
     wndClassEx.lpfnWndProc = WndProc;
@@ -47,7 +154,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     RegisterClassExA(&wndClassEx);
 
-    RECT initialRect = {0, 0, 1024, 768};
+    RECT initialRect = {
+            .right = WINDOW_WIDTH,
+            .bottom = WINDOW_HEIGHT,
+    };
+
     AdjustWindowRectEx(&initialRect, WS_OVERLAPPEDWINDOW, FALSE, WS_EX_OVERLAPPEDWINDOW);
     LONG initialWidth = initialRect.right - initialRect.left;
     LONG initialHeight = initialRect.bottom - initialRect.top;
@@ -109,76 +220,43 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     assert(SUCCEEDED(hr));
     framebuffer->Release();
 
-    flags = D3DCOMPILE_ENABLE_STRICTNESS;
-#ifdef DEBUG
-    flags |= D3DCOMPILE_DEBUG;// add more debug output
-#endif
-    ID3DBlob *vs_blob_ptr = nullptr, *ps_blob_ptr = nullptr, *error_blob = nullptr;
+    // reading compiled shaders
+    // remember to compile the shaders by running the compile_shaders.bat file
 
-    // COMPILE VERTEX SHADER
-    hr = D3DCompileFromFile(
-            L"shaders.hlsl",
-            nullptr,
-            D3D_COMPILE_STANDARD_FILE_INCLUDE,
-            "vs_main",
-            "vs_5_0",
-            flags,
-            0,
-            &vs_blob_ptr,
-            &error_blob);
-    if (FAILED(hr)) {
-        if (error_blob) {
-            OutputDebugStringA((char *) error_blob->GetBufferPointer());
-            error_blob->Release();
-        }
-        if (vs_blob_ptr) { vs_blob_ptr->Release(); }
-        assert(false);
-    }
+    Buf vert_buf, pixel_buf;
+    LucyResult res = read_whole_file(&big_arena, "build\\vert.compiled_shader", &vert_buf);
+    assert(res == LRES_OK);
 
-    // COMPILE PIXEL SHADER
-    hr = D3DCompileFromFile(
-            L"shaders.hlsl",
-            nullptr,
-            D3D_COMPILE_STANDARD_FILE_INCLUDE,
-            "ps_main",
-            "ps_5_0",
-            flags,
-            0,
-            &ps_blob_ptr,
-            &error_blob);
-    if (FAILED(hr)) {
-        if (error_blob) {
-            OutputDebugStringA((char *) error_blob->GetBufferPointer());
-            error_blob->Release();
-        }
-        if (ps_blob_ptr) { ps_blob_ptr->Release(); }
-        assert(false);
-    }
-
-    // compiling shaders
+    res = read_whole_file(&big_arena, "build\\pixel.compiled_shader", &pixel_buf);
+    assert(res == LRES_OK);
 
     ID3D11VertexShader *vertex_shader_ptr = nullptr;
     ID3D11PixelShader *pixel_shader_ptr = nullptr;
 
     hr = device->CreateVertexShader(
-            vs_blob_ptr->GetBufferPointer(),
-            vs_blob_ptr->GetBufferSize(),
+            vert_buf.buf,
+            vert_buf.size,
+            //            vs_blob_ptr->GetBufferPointer(),
+            //            vs_blob_ptr->GetBufferSize(),
             nullptr,
             &vertex_shader_ptr);
     assert(SUCCEEDED(hr));
 
     hr = device->CreatePixelShader(
-            ps_blob_ptr->GetBufferPointer(),
-            ps_blob_ptr->GetBufferSize(),
+            pixel_buf.buf,
+            pixel_buf.size,
+            //            ps_blob_ptr->GetBufferPointer(),
+            //            ps_blob_ptr->GetBufferSize(),
             nullptr,
             &pixel_shader_ptr);
     assert(SUCCEEDED(hr));
+
 
     // input layout
     ID3D11InputLayout *input_layout_ptr = nullptr;
     D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
             {"POS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            { "COL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            {"COL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
             /*
   { "NOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
   { "TEX", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -187,15 +265,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     hr = device->CreateInputLayout(
             inputElementDesc,
             ARRAYSIZE(inputElementDesc),
-            vs_blob_ptr->GetBufferPointer(),
-            vs_blob_ptr->GetBufferSize(),
+            vert_buf.buf,
+            vert_buf.size,
             &input_layout_ptr);
     assert(SUCCEEDED(hr));
 
+    //zeroing arena, see what that does
+    arena_zero(&big_arena);
+
+    // you don't have to hold on to the file contents of the shader files from this point on.
+
     //vertex buffer
     float vertex_data_array[] = {
-            0.0f, 0.5f, 0.0f, 1.f, 0.f, 0.f,  // point at top
-            0.5f, -0.5f, 0.0f, 0.f, 1.f, 0.f,  // point at bottom-right
+            0.0f, 0.5f, 0.0f, 1.f, 0.f, 0.f, // point at top
+            0.5f, -0.5f, 0.0f, 0.f, 1.f, 0.f,// point at bottom-right
             -0.5f, -0.5f, 0.0f, 0.f, 0.f, 1.f// point at bottom-left
     };
     UINT vertex_stride = 6 * sizeof(float);
