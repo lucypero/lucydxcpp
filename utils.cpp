@@ -24,7 +24,7 @@ struct ProgramState {
 
 struct Arena {
     u8 *buf;
-    u64 pointer;
+    u64 offset; //arena offset pointer. it offsets to the first free byte. starts at 0
     u64 size;
 };
 
@@ -45,23 +45,31 @@ void log(const char* format, ...) {
 }
 
 void *arena_push(Arena *arena, u64 size) {
-    void* ret_buf = arena->buf + arena->pointer;
+    void* ret_buf = arena->buf + arena->offset;
 
-    arena->pointer += size;
+    arena->offset += size;
 
     // checking that u have enough mem in the arena
-    assert(arena->pointer <= arena->size);
+    assert(arena->offset <= arena->size);
 
     return ret_buf;
 }
 
 void arena_clear(Arena *arena) {
-    arena->pointer = 0;
+    arena->offset = 0;
 }
 
 void arena_zero(Arena *arena) {
-    arena->pointer = 0;
+    arena->offset = 0;
     memset(arena->buf, 0, arena->size);
+}
+
+u64 arena_get_checkpoint(Arena *arena) {
+    return arena->offset;
+}
+
+void arena_goto_checkpoint(Arena *arena, u64 checkpoint) {
+    arena->offset = checkpoint;
 }
 
 //this allocs a buffer w the file contents

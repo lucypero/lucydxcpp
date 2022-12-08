@@ -20,6 +20,7 @@
 
 // project source files
 #include "utils.cpp"
+#include "exercises.cpp"
 
 #define TITLE "lucydxcpp"
 #define ENABLE_MSAA true
@@ -62,7 +63,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //now i make an arena..?
     Arena big_arena = {
             .buf = (u8 *) base_mem,
-            .pointer = 0,
+            .offset = 0,
             .size = TOTAL_MEM,
     };
 
@@ -134,6 +135,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     IDXGIFactory2 *dxgi_factory;
     dxgi_adapter->GetParent(__uuidof(IDXGIFactory2), reinterpret_cast<void **>(&dxgi_factory));
 
+    //enum adapters
+    // (for exercise)
+    enum_adapters(&big_arena, dxgi_factory);
+
     // checking for msaa support
     UINT msaa_4_quality;
     device->CheckMultisampleQualityLevels(
@@ -156,6 +161,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.BufferCount = 1;
     sd.Scaling = DXGI_SCALING_STRETCH;
+    // this is kinda deprectated but we'll keep using it for now bc the new thing requires manual MSAA
     sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
     sd.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
     sd.Flags = 0;
@@ -163,6 +169,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     IDXGISwapChain1 *swapchain;
     res = dxgi_factory->CreateSwapChainForHwnd(device, window, &sd, 0, 0, &swapchain);
     assert(res == 0);
+
+    // telling dxgi to not mess with the window event queue (basically disable auto alt+enter for fullscreen)
+    dxgi_factory->MakeWindowAssociation(window, DXGI_MWA_NO_WINDOW_CHANGES);
 
     // creating the view to the back buffer
     ID3D11RenderTargetView *render_target_view;
@@ -237,11 +246,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         i64 dt = time_now - time_last;
         time_last = time_now;
 
-        Sleep(1000);
+//        Sleep(1000);
 
-        log("dt is %i, in miliseconds it is: %f", dt, ((f64)dt * seconds_per_count) * 1000);
+//        log("dt is %i, in miliseconds it is: %f", dt, ((f64)dt * seconds_per_count) * 1000);
+
+
+        // render a frame here w dx11
+        /* clear the back buffer to cornflower blue for the new frame */
+        float background_colour[4] = {0x64 / 255.0f, 0x95 / 255.0f, 0xED / 255.0f, 1.0f};
+        device_context->ClearRenderTargetView(render_target_view, background_colour);
 
         // update and draw here
+
+        swapchain->Present(1, 0);
     }
 
     return 0;
