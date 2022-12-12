@@ -7,29 +7,96 @@
 #define WIN32_LEAN_AND_MEAN
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
-#include <windows.h>
 #include <stdio.h>
+#include <windows.h>
 
-// use this later
-#if 0
+#include "d3dx11effect.h"
+
 #include "DirectXMath.h"
 #include "DirectXPackedVector.h"
-#endif
+using namespace DirectX;
 
 #include <cassert>
 
 // project source files
 #include "utils.cpp"
 #include "exercises.cpp"
+#include "math.cpp"
 
 #define TITLE "lucydxcpp"
 #define ENABLE_MSAA true
 
 const u32 WINDOW_WIDTH = 1280;
 const u32 WINDOW_HEIGHT = 720;
+const f32 WINDOW_ASPECT_RATIO = (f32) WINDOW_WIDTH / (f32) WINDOW_HEIGHT;
+
+struct Vertex {
+    XMFLOAT3 Pos;
+    XMFLOAT4 Color;
+};
+
+namespace Colors {
+    XMGLOBALCONST XMFLOAT4 White = {1.0f, 1.0f, 1.0f, 1.0f};
+    XMGLOBALCONST XMFLOAT4 Black = {0.0f, 0.0f, 0.0f, 1.0f};
+    XMGLOBALCONST XMFLOAT4 Red = {1.0f, 0.0f, 0.0f, 1.0f};
+    XMGLOBALCONST XMFLOAT4 Green = {0.0f, 1.0f, 0.0f, 1.0f};
+    XMGLOBALCONST XMFLOAT4 Blue = {0.0f, 0.0f, 1.0f, 1.0f};
+    XMGLOBALCONST XMFLOAT4 Yellow = {1.0f, 1.0f, 0.0f, 1.0f};
+    XMGLOBALCONST XMFLOAT4 Cyan = {0.0f, 1.0f, 1.0f, 1.0f};
+    XMGLOBALCONST XMFLOAT4 Magenta = {1.0f, 0.0f, 1.0f, 1.0f};
+}// namespace Colors
 
 // total memory allocated
-#define TOTAL_MEM (10 * 1024)
+#define TOTAL_MEM (1000 * 1024)
+
+#define GET_X_LPARAM(lp)                        ((int)(short)LOWORD(lp))
+#define GET_Y_LPARAM(lp)                        ((int)(short)HIWORD(lp))
+
+// Gotta make these globals for now so i can access them from WndProc
+POINT last_mouse_pos = {};
+HWND window = {};
+f32 cam_theta = 1.5f * math::PI;
+f32 cam_phi = 0.25f * math::PI;
+f32 cam_radius = 5.0f;
+
+void OnMouseDown(WPARAM btnState, i32 x, i32 y){
+    log("on mouse down");
+    last_mouse_pos.x = x;
+    last_mouse_pos.y = y;
+    SetCapture(window);
+}
+
+void OnMouseUp(WPARAM btnState, i32 x, i32 y)  {
+    log("on mouse up");
+    ReleaseCapture();
+}
+
+void OnMouseMove(WPARAM btnState, i32 x, i32 y){
+    log("on mouse move");
+
+    if ( (btnState & MK_LBUTTON) != 0) {
+        // Make each pixel correspond to a quarter of a degree.
+        float dx = XMConvertToRadians(
+                0.25f*static_cast<float>(x - last_mouse_pos.x));
+        float dy = XMConvertToRadians(
+                0.25f*static_cast<float>(y - last_mouse_pos.y));
+        // Update angles based on input to orbit camera around box.
+        cam_theta += dx;
+        cam_phi += dy;
+        // Restrict the angle cam_phi.
+        cam_phi = math::clamp(cam_phi, 0.1f, math::PI-0.1f);
+    } else if( (btnState & MK_RBUTTON) != 0 ) {
+        // Make each pixel correspond to 0.005 unit in the scene.
+        float dx = 0.005f*static_cast<float>(x - last_mouse_pos.x);
+        float dy = 0.005f*static_cast<float>(y - last_mouse_pos.y);
+        // Update the camera radius based on input.
+        cam_radius += dx - dy;
+        // Restrict the radius.
+        cam_radius = math::clamp(cam_radius, 3.0f, 15.0f);
+    }
+    last_mouse_pos.x = x;
+    last_mouse_pos.y = y;
+}
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     LRESULT result = 0;
@@ -43,6 +110,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
             PostQuitMessage(0);
             break;
         }
+        case WM_LBUTTONDOWN:
+        case WM_MBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+            OnMouseDown(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            return 0;
+        case WM_LBUTTONUP:
+        case WM_MBUTTONUP:
+        case WM_RBUTTONUP:
+            OnMouseUp(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            return 0;
+        case WM_MOUSEMOVE:
+            OnMouseMove(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            return 0;
+
         default:
             result = DefWindowProcA(hwnd, msg, wparam, lparam);
     }
@@ -82,7 +163,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     LONG initial_width = initialRect.right - initialRect.left;
     LONG initial_height = initialRect.bottom - initialRect.top;
 
-    HWND window = CreateWindowExA(WS_EX_OVERLAPPEDWINDOW,
+    window = CreateWindowExA(WS_EX_OVERLAPPEDWINDOW,
                                   TITLE, TITLE,
                                   WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                                   CW_USEDEFAULT, CW_USEDEFAULT,
@@ -95,7 +176,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return GetLastError();
     }
 
-    // initializing DX
+    // INITIALIZING DX ------------------------
 
     UINT create_device_flags = 0;
 
@@ -108,7 +189,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     D3D_FEATURE_LEVEL ret_feature_level;
 
-    HRESULT res = D3D11CreateDevice(
+    HRESULT hres = D3D11CreateDevice(
             0,
             D3D_DRIVER_TYPE_HARDWARE,
             0,
@@ -119,7 +200,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             &base_device,
             &ret_feature_level,
             &base_device_context);
-    assert(res == 0);
+    assert(hres == 0);
     assert(ret_feature_level == D3D_FEATURE_LEVEL_11_0);
 
     // getting device1, dc1 and factory2
@@ -137,7 +218,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     //enum adapters
     // (for exercise)
-    enum_adapters(&big_arena, dxgi_factory);
+    //    enum_adapters(&big_arena, dxgi_factory);
 
     // checking for msaa support
     UINT msaa_4_quality;
@@ -167,8 +248,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     sd.Flags = 0;
 
     IDXGISwapChain1 *swapchain;
-    res = dxgi_factory->CreateSwapChainForHwnd(device, window, &sd, 0, 0, &swapchain);
-    assert(res == 0);
+    hres = dxgi_factory->CreateSwapChainForHwnd(device, window, &sd, 0, 0, &swapchain);
+    assert(hres == 0);
 
     // telling dxgi to not mess with the window event queue (basically disable auto alt+enter for fullscreen)
     dxgi_factory->MakeWindowAssociation(window, DXGI_MWA_NO_WINDOW_CHANGES);
@@ -177,8 +258,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ID3D11RenderTargetView *render_target_view;
     ID3D11Texture2D *back_buffer;
     swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void **>(&back_buffer));
-    res = device->CreateRenderTargetView(back_buffer, 0, &render_target_view);
-    assert(res == 0);
+    hres = device->CreateRenderTargetView(back_buffer, 0, &render_target_view);
+    assert(hres == 0);
 
     // creating depth/stencil buffer
 
@@ -204,59 +285,243 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ID3D11Texture2D *depth_stencil_buffer;
     ID3D11DepthStencilView *depth_stencil_view;
 
-    res = device->CreateTexture2D(&depth_desc, 0, &depth_stencil_buffer);
-    assert( res == 0);
-    res = device->CreateDepthStencilView(depth_stencil_buffer, 0, &depth_stencil_view);
-    assert( res == 0);
+    hres = device->CreateTexture2D(&depth_desc, 0, &depth_stencil_buffer);
+    assert(hres == 0);
+    hres = device->CreateDepthStencilView(depth_stencil_buffer, 0, &depth_stencil_view);
+    assert(hres == 0);
 
     device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil_view);
+
+    // viewport
 
     D3D11_VIEWPORT vp = {};
     vp.TopLeftX = 0.0f;
     vp.TopLeftY = 0.0f;
     vp.Width = static_cast<float>(WINDOW_WIDTH);
     vp.Height = static_cast<float>(WINDOW_HEIGHT);
+
+    //try this once you have something rendered..
+    //    vp.TopLeftX = 100.0f;
+    //    vp.TopLeftY = 100.0f;
+    //    vp.Width = 500.0f;
+    //    vp.Height = 400.0f;
+
     vp.MinDepth = 0.0f;
     vp.MaxDepth = 1.0f;
 
     device_context->RSSetViewports(1, &vp);
 
+    // INITIALIZING DX /END ------------------------
+
+    // VARIABLES like WVP matrix and stuff ------------
+
+    XMFLOAT4X4 mat_world;
+    XMFLOAT4X4 mat_view;
+    XMFLOAT4X4 mat_proj;
+
+    XMMATRIX I = XMMatrixIdentity();
+    XMStoreFloat4x4(&mat_world, I);
+    XMStoreFloat4x4(&mat_view, I);
+    XMStoreFloat4x4(&mat_proj, I);
+
+    // VARIABLES /end ------------------------------
+
+    // SHADER LOADING ------------------------
+
+    u64 checkpoint = arena_save(&big_arena);
+
+    Buf color_fx_buf;
+    LucyResult l_res = read_whole_file(&big_arena, "build\\color.fxo", &color_fx_buf);
+    assert(l_res == LRES_OK);
+
+    ID3DX11Effect *effect;
+
+    hres = D3DX11CreateEffectFromMemory(
+            color_fx_buf.buf,
+            color_fx_buf.size,
+            0, device,
+            &effect);
+    assert(hres == 0);
+
+    //getting tech and WVP matrix from effect
+    ID3DX11EffectTechnique *tech = effect->GetTechniqueByName("ColorTech");
+    assert(tech->IsValid());
+
+    ID3DX11EffectMatrixVariable *wvp_mat_var = effect->GetVariableByName("gWorldViewProj")->AsMatrix();
+    assert(wvp_mat_var->IsValid());
+
+    // shader input layout
+
+    ID3D11InputLayout *input_layout = nullptr;
+    D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    };
+
+    D3DX11_PASS_DESC pass_desc;
+    tech->GetPassByIndex(0)->GetDesc(&pass_desc);
+
+    hres = device->CreateInputLayout(
+            inputElementDesc,
+            arrsize(inputElementDesc),
+            pass_desc.pIAInputSignature,
+            pass_desc.IAInputSignatureSize,
+            &input_layout);
+    assert(hres == 0);
+
+    // don't need the shader buffer anymore. color_fx_buf is invalid now.
+    arena_restore(&big_arena, checkpoint);
+
+    // SHADER LOADING /END ------------------------
+
+    // INITIALIZING BUFFERS -----------------
+
+    // create vertex buffer
+    Vertex vertices[] = {
+            {XMFLOAT3(-1.0f, -1.0f, -1.0f), Colors::White},
+            {XMFLOAT3(-1.0f, +1.0f, -1.0f), Colors::Black},
+            {XMFLOAT3(+1.0f, +1.0f, -1.0f), Colors::Red},
+            {XMFLOAT3(+1.0f, -1.0f, -1.0f), Colors::Green},
+            {XMFLOAT3(-1.0f, -1.0f, +1.0f), Colors::Blue},
+            {XMFLOAT3(-1.0f, +1.0f, +1.0f), Colors::Yellow},
+            {XMFLOAT3(+1.0f, +1.0f, +1.0f), Colors::Cyan},
+            {XMFLOAT3(+1.0f, -1.0f, +1.0f), Colors::Magenta},
+    };
+
+    u32 vert_count = 8;
+
+
+    ID3D11Buffer *box_vb;
+
+    D3D11_BUFFER_DESC vbd = {};
+    vbd.Usage = D3D11_USAGE_IMMUTABLE;
+    vbd.ByteWidth = sizeof(Vertex) * vert_count;
+    vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    D3D11_SUBRESOURCE_DATA vinit_data = {};
+    vinit_data.pSysMem = vertices;
+    hres = device->CreateBuffer(&vbd, &vinit_data, &box_vb);
+    assert(hres == 0);
+
+    // create index buffer
+    u32 indices[] = {
+            //front face
+            0, 1, 2,
+            0, 2, 3,
+
+            //back face
+            4, 6, 5,
+            4, 7, 6,
+
+            // left face
+            4, 5, 1,
+            4, 1, 0,
+
+            // right face
+            3, 2, 6,
+            3, 6, 7,
+
+            // top face
+            1, 5, 6,
+            1, 6, 2,
+
+            //bottom face
+            4, 0, 3,
+            4, 3, 7};
+
+    u32 index_count = 36;
+
+    ID3D11Buffer *box_ib;
+
+    D3D11_BUFFER_DESC ibd = {};
+    ibd.Usage = D3D11_USAGE_IMMUTABLE;
+    ibd.ByteWidth = sizeof(u32) * index_count;
+    ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    D3D11_SUBRESOURCE_DATA iinit_data = {};
+    iinit_data.pSysMem = indices;
+    hres = device->CreateBuffer(&ibd, &iinit_data, &box_ib);
+    assert(hres == 0);
+
+    // INITIALIZING BUFFERS - /END -----------------
+
+    // setting matrixes that don't need to be set every frame...
+    XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * math::PI, WINDOW_ASPECT_RATIO, 1.0f, 1000.0f);
+    XMStoreFloat4x4(&mat_proj, P);
 
     // main loop
     bool is_running = true;
 
     i64 perf_freq;
-    QueryPerformanceFrequency((LARGE_INTEGER*)&perf_freq);
+    QueryPerformanceFrequency((LARGE_INTEGER *) &perf_freq);
     f64 seconds_per_count = 1.0 / (f64) perf_freq;
     i64 time_last;
-    QueryPerformanceCounter((LARGE_INTEGER*)&time_last);
+    QueryPerformanceCounter((LARGE_INTEGER *) &time_last);
 
     while (is_running) {
         MSG msg;
 
         while (PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE)) {
-            if (msg.message == WM_QUIT || msg.message == WM_KEYDOWN)
+            if (msg.message == WM_QUIT)
                 is_running = false;
             TranslateMessage(&msg);
             DispatchMessageA(&msg);
         }
 
         i64 time_now;
-        QueryPerformanceCounter((LARGE_INTEGER*)&time_now);
+        QueryPerformanceCounter((LARGE_INTEGER *) &time_now);
         i64 dt = time_now - time_last;
         time_last = time_now;
+        // log("dt is %i, in miliseconds it is: %f", dt, ((f64)dt * seconds_per_count) * 1000);
 
-//        Sleep(1000);
+        // Update program state ---------------
 
-//        log("dt is %i, in miliseconds it is: %f", dt, ((f64)dt * seconds_per_count) * 1000);
+        //convert spherical to cartesian coordinates
+        f32 x = cam_radius * sinf(cam_phi) * cosf(cam_theta);
+        f32 y = cam_radius * sinf(cam_phi) * sinf(cam_theta);
+        f32 z = cam_radius * cosf(cam_phi);
+
+        //debug testing
+        //        x = 0.0f;
+        //        y = 0.0f;
+        //        z = 10.0f;
+
+        // Build the view matrix.
+        XMVECTOR cam_pos = XMVectorSet(x, y, z, 1.0f);
+        XMVECTOR cam_target = XMVectorZero();
+        XMVECTOR cam_up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+        XMMATRIX view_mat = XMMatrixLookAtLH(cam_pos, cam_target, cam_up);
+        XMStoreFloat4x4(&mat_view, view_mat);
+
+        // Update program state /end ---------------
 
 
-        // render a frame here w dx11
-        /* clear the back buffer to cornflower blue for the new frame */
-        float background_colour[4] = {0x64 / 255.0f, 0x95 / 255.0f, 0xED / 255.0f, 1.0f};
-        device_context->ClearRenderTargetView(render_target_view, background_colour);
+        // Draw ---------------
+        device_context->ClearRenderTargetView(render_target_view, reinterpret_cast<const f32 *>(&Colors::Blue));
 
-        // update and draw here
+        device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        device_context->IASetInputLayout(input_layout);
+        device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        u32 stride = sizeof(Vertex);
+        u32 offset = 0;
+        device_context->IASetVertexBuffers(0, 1, &box_vb, &stride, &offset);
+        device_context->IASetIndexBuffer(box_ib, DXGI_FORMAT_R32_UINT, 0);
+
+        //Set constants
+        XMMATRIX world = XMLoadFloat4x4(&mat_world);
+        XMMATRIX view = XMLoadFloat4x4(&mat_view);
+        XMMATRIX proj = XMLoadFloat4x4(&mat_proj);
+        XMMATRIX wvp = world * view * proj;
+        wvp_mat_var->SetMatrix(reinterpret_cast<float *>(&wvp));
+
+        // Drawing indexes
+        D3DX11_TECHNIQUE_DESC tech_desc;
+        tech->GetDesc(&tech_desc);
+        for (u32 p = 0; p < tech_desc.Passes; ++p) {
+            tech->GetPassByIndex(p)->Apply(0, device_context);
+            device_context->DrawIndexed(index_count, 0, 0);
+        }
+
+        // Draw /end ---------------
 
         swapchain->Present(1, 0);
     }

@@ -1,7 +1,7 @@
 // 4.7 EXERCISES ----------------
 void enum_adapters(Arena *arena, IDXGIFactory2 *dxgi_factory) {
 
-    u64 checkpoint = arena_get_checkpoint(arena);
+    u64 checkpoint = arena_save(arena);
 
     IDXGIAdapter *dxgi_adapter_i;
     for (int i = 0; dxgi_factory->EnumAdapters(i, &dxgi_adapter_i) != DXGI_ERROR_NOT_FOUND; ++i) {
@@ -45,5 +45,5 @@ void enum_adapters(Arena *arena, IDXGIFactory2 *dxgi_factory) {
         log("num outputs of adapter (i think these are monitors?) %i", num_outputs);
     }
 
-    arena_goto_checkpoint(arena, checkpoint);
+    arena_restore(arena, checkpoint);
 }

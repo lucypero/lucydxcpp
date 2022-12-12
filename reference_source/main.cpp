@@ -236,8 +236,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     hr = device->CreateVertexShader(
             vert_buf.buf,
             vert_buf.size,
-            //            vs_blob_ptr->GetBufferPointer(),
-            //            vs_blob_ptr->GetBufferSize(),
             nullptr,
             &vertex_shader_ptr);
     assert(SUCCEEDED(hr));
@@ -245,8 +243,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     hr = device->CreatePixelShader(
             pixel_buf.buf,
             pixel_buf.size,
-            //            ps_blob_ptr->GetBufferPointer(),
-            //            ps_blob_ptr->GetBufferSize(),
             nullptr,
             &pixel_shader_ptr);
     assert(SUCCEEDED(hr));

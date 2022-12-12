@@ -64,11 +64,11 @@ void arena_zero(Arena *arena) {
     memset(arena->buf, 0, arena->size);
 }
 
-u64 arena_get_checkpoint(Arena *arena) {
+u64 arena_save(Arena *arena) {
     return arena->offset;
 }
 
-void arena_goto_checkpoint(Arena *arena, u64 checkpoint) {
+void arena_restore(Arena *arena, u64 checkpoint) {
     arena->offset = checkpoint;
 }
 

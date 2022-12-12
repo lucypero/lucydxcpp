@@ -62,5 +62,6 @@ SpacesInCStyleCastParentheses: false
 SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
+SortIncludes: false
 TabWidth: 4
 UseTab: Never
