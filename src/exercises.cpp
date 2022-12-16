@@ -32,7 +32,7 @@ fn void enum_adapters(Arena *arena, IDXGIFactory2 *dxgi_factory) {
             output_1_i->GetDisplayModeList1(DXGI_FORMAT_R8G8B8A8_UNORM, 0, &p_num_modes, p_desc_arr);
 
             // describing all the display modes per output
-            for(int j = 0; j < p_num_modes; ++j) {
+            for(u32 j = 0; j < p_num_modes; ++j) {
                 DXGI_MODE_DESC1 mode = p_desc_arr[j];
 
                 log("describing display mode %i for output %i", j, num_outputs);

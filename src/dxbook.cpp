@@ -39,6 +39,15 @@ struct Vertex {
     XMFLOAT4 Color;
 };
 
+struct RenderContext {
+    HWND window;
+    ID3D11Device1 *device;
+    ID3D11DeviceContext1 *device_context;
+    IDXGISwapChain1 *swapchain;
+    ID3D11RenderTargetView *render_target_view;
+    ID3D11DepthStencilView *depth_stencil_view;
+};
+
 namespace Colors {
     XMGLOBALCONST XMFLOAT4 White = {1.0f, 1.0f, 1.0f, 1.0f};
     XMGLOBALCONST XMFLOAT4 Black = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -57,11 +66,15 @@ namespace Colors {
 #define GET_Y_LPARAM(lp) ((int) (short) HIWORD(lp))
 
 // Gotta make these globals for now so i can access them from WndProc
+// TODO: stop making these globals! u gotta pass as truct to wndproc!
 POINT last_mouse_pos = {};
 HWND window = {};
 f32 cam_yaw = 0.0f;
 f32 cam_pitch = 0.0f;
 f32 cam_radius = 5.0f;
+
+// demo file (only include one of these depending on what demo you want to run!)
+#include "demo_box.cpp"
 
 fn void OnMouseDown(WPARAM btnState, i32 x, i32 y) {
     last_mouse_pos.x = x;
@@ -80,11 +93,12 @@ fn void OnMouseMove(WPARAM btnState, i32 x, i32 y) {
                 0.25f * static_cast<f32>(x - last_mouse_pos.x));
         float dy = XMConvertToRadians(
                 0.25f * static_cast<f32>(y - last_mouse_pos.y));
+
         cam_yaw += dx;
         cam_pitch -= dy;
 
         //limiting pitch
-        cam_pitch = math::clamp(cam_pitch, -1.4, 1.4);
+        cam_pitch = math::clamp(cam_pitch, -1.4f, 1.4f);
 
     } else if ((btnState & MK_RBUTTON) != 0) {
         float dx = 0.005f * static_cast<f32>(x - last_mouse_pos.x);
@@ -105,53 +119,72 @@ fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
         return true;
 
     LRESULT result = 0;
-    switch (msg) {
-        case WM_KEYDOWN: {
-            if (wparam == VK_ESCAPE)
-                DestroyWindow(hwnd);
-            break;
-        }
-        case WM_DESTROY: {
-            PostQuitMessage(0);
-            break;
-        }
-        case WM_LBUTTONDOWN:
-        case WM_MBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-            OnMouseDown(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-            return 0;
-        case WM_LBUTTONUP:
-        case WM_MBUTTONUP:
-        case WM_RBUTTONUP:
-            OnMouseUp(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-            return 0;
-        case WM_MOUSEMOVE:
-            OnMouseMove(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-            return 0;
 
-        default:
-            result = DefWindowProcA(hwnd, msg, wparam, lparam);
+    bool do_imgui_handling = false;
+
+    if (ImGui::GetCurrentContext() != nullptr) {
+        ImGuiIO &io = ImGui::GetIO();
+        if (io.WantCaptureKeyboard || io.WantCaptureMouse) {
+            do_imgui_handling = true;
+        }
     }
+
+    // handling when controlling imgui
+    if(do_imgui_handling) {
+        switch (msg) {
+            case WM_KEYDOWN: {
+                if (wparam == VK_ESCAPE)
+                    DestroyWindow(hwnd);
+                break;
+            }
+            case WM_DESTROY: {
+                PostQuitMessage(0);
+                break;
+            }
+            case WM_LBUTTONDOWN:
+            case WM_MBUTTONDOWN:
+            case WM_RBUTTONDOWN:
+                last_mouse_pos.x = GET_X_LPARAM(lparam);
+                last_mouse_pos.y = GET_Y_LPARAM(lparam);
+                return 0;
+            default:
+                result = DefWindowProcA(hwnd, msg, wparam, lparam);
+        }
+    } else {
+        // user handling (when not in imgui)
+        switch (msg) {
+            case WM_KEYDOWN: {
+                if (wparam == VK_ESCAPE)
+                    DestroyWindow(hwnd);
+                break;
+            }
+            case WM_DESTROY: {
+                PostQuitMessage(0);
+                break;
+            }
+            case WM_LBUTTONDOWN:
+            case WM_MBUTTONDOWN:
+            case WM_RBUTTONDOWN:
+                OnMouseDown(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+                return 0;
+            case WM_LBUTTONUP:
+            case WM_MBUTTONUP:
+            case WM_RBUTTONUP:
+                OnMouseUp(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+                return 0;
+            case WM_MOUSEMOVE:
+                OnMouseMove(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+                return 0;
+
+            default:
+                result = DefWindowProcA(hwnd, msg, wparam, lparam);
+        }
+    }
+
     return result;
 }
 
-fn int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
-
-    // allocate all memory for the whole game
-    void *base_mem = VirtualAlloc(0, TOTAL_MEM, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    assert(base_mem != 0);
-
-    ProgramState program_state = {
-            .base_mem = base_mem,
-            .total_mem_size = TOTAL_MEM,
-    };
-
-    //now i make an arena..?
-    Arena big_arena = {
-            .buf = (u8 *) base_mem,
-            .offset = 0,
-            .size = TOTAL_MEM,
-    };
+LucyResult render_context_init(HINSTANCE hInstance, RenderContext *out_render_ctx) {
 
     WNDCLASSEXA wndClassEx = {sizeof(wndClassEx)};
     wndClassEx.lpfnWndProc = WndProc;
@@ -178,7 +211,7 @@ fn int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
 
     if (!window) {
         MessageBoxA(nullptr, "CreateWindowEx failed", "Fatal Error", MB_OK);
-        return GetLastError();
+        return LRES_FAIL;
     }
 
     // INITIALIZING DX ------------------------
@@ -318,166 +351,41 @@ fn int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
 
     // INITIALIZING DX /END ------------------------
 
-    // VARIABLES like WVP matrix and stuff ------------
+    out_render_ctx->window = window;
+    out_render_ctx->device = device;
+    out_render_ctx->device_context = device_context;
+    out_render_ctx->swapchain = swapchain;
+    out_render_ctx->render_target_view = render_target_view;
+    out_render_ctx->depth_stencil_view = depth_stencil_view;
 
-    XMFLOAT4X4 mat_world;
-    XMFLOAT4X4 mat_view;
-    XMFLOAT4X4 mat_proj;
+    return LRES_OK;
+}
 
-    XMMATRIX I = XMMatrixIdentity();
-    XMStoreFloat4x4(&mat_world, I);
-    XMStoreFloat4x4(&mat_view, I);
-    XMStoreFloat4x4(&mat_proj, I);
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
 
-    // VARIABLES /end ------------------------------
+    // allocate all memory for the whole game
+    void *base_mem = VirtualAlloc(0, TOTAL_MEM, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    assert(base_mem != 0);
 
-    // SHADER LOADING ------------------------
-
-    u64 checkpoint = arena_save(&big_arena);
-
-    Buf color_fx_buf;
-    LucyResult l_res = read_whole_file(&big_arena, "build\\color.fxo", &color_fx_buf);
-    assert(l_res == LRES_OK);
-
-    ID3DX11Effect *effect;
-
-    hres = D3DX11CreateEffectFromMemory(
-            color_fx_buf.buf,
-            color_fx_buf.size,
-            0, device,
-            &effect);
-    assert(hres == 0);
-
-    //getting tech and WVP matrix from effect
-    ID3DX11EffectTechnique *tech = effect->GetTechniqueByName("ColorTech");
-    assert(tech->IsValid());
-
-    ID3DX11EffectMatrixVariable *wvp_mat_var = effect->GetVariableByName("gWorldViewProj")->AsMatrix();
-    assert(wvp_mat_var->IsValid());
-
-    // shader input layout
-
-    ID3D11InputLayout *input_layout = nullptr;
-    D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    ProgramState program_state = {
+            .base_mem = base_mem,
+            .total_mem_size = TOTAL_MEM,
     };
 
-    D3DX11_PASS_DESC pass_desc;
-    tech->GetPassByIndex(0)->GetDesc(&pass_desc);
-
-    hres = device->CreateInputLayout(
-            inputElementDesc,
-            arrsize(inputElementDesc),
-            pass_desc.pIAInputSignature,
-            pass_desc.IAInputSignatureSize,
-            &input_layout);
-    assert(hres == 0);
-
-    // don't need the shader buffer anymore. color_fx_buf is invalid now.
-    arena_restore(&big_arena, checkpoint);
-
-    // SHADER LOADING /END ------------------------
-
-    // INITIALIZING BUFFERS -----------------
-
-    // create vertex buffer
-    Vertex vertices[] = {
-            {XMFLOAT3(-1.0f, -1.0f, -1.0f), Colors::White},
-            {XMFLOAT3(-1.0f, +1.0f, -1.0f), Colors::Black},
-            {XMFLOAT3(+1.0f, +1.0f, -1.0f), Colors::Red},
-            {XMFLOAT3(+1.0f, -1.0f, -1.0f), Colors::Green},
-            {XMFLOAT3(-1.0f, -1.0f, +1.0f), Colors::Blue},
-            {XMFLOAT3(-1.0f, +1.0f, +1.0f), Colors::Yellow},
-            {XMFLOAT3(+1.0f, +1.0f, +1.0f), Colors::Cyan},
-            {XMFLOAT3(+1.0f, -1.0f, +1.0f), Colors::Magenta},
+    //now i make an arena..?
+    Arena big_arena = {
+            .buf = (u8 *) base_mem,
+            .offset = 0,
+            .size = TOTAL_MEM,
     };
 
-    u32 vert_count = 8;
+    RenderContext rctx = {};
+    LucyResult lres = render_context_init(hInstance, &rctx);
+    assert(lres == 0);
 
-    ID3D11Buffer *box_vb;
-
-    D3D11_BUFFER_DESC vbd = {};
-    vbd.Usage = D3D11_USAGE_IMMUTABLE;
-    vbd.ByteWidth = sizeof(Vertex) * vert_count;
-    vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    D3D11_SUBRESOURCE_DATA vinit_data = {};
-    vinit_data.pSysMem = vertices;
-    hres = device->CreateBuffer(&vbd, &vinit_data, &box_vb);
-    assert(hres == 0);
-
-    // create index buffer
-    u32 indices[] = {
-            //front face
-            0,
-            1,
-            2,
-            0,
-            2,
-            3,
-
-            //back face
-            4,
-            6,
-            5,
-            4,
-            7,
-            6,
-
-            // left face
-            4,
-            5,
-            1,
-            4,
-            1,
-            0,
-
-            // right face
-            3,
-            2,
-            6,
-            3,
-            6,
-            7,
-
-            // top face
-            1,
-            5,
-            6,
-            1,
-            6,
-            2,
-
-            //bottom face
-            4,
-            0,
-            3,
-            4,
-            3,
-            7,
-    };
-
-    u32 index_count = 36;
-
-    ID3D11Buffer *box_ib;
-
-    D3D11_BUFFER_DESC ibd = {};
-    ibd.Usage = D3D11_USAGE_IMMUTABLE;
-    ibd.ByteWidth = sizeof(u32) * index_count;
-    ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    D3D11_SUBRESOURCE_DATA iinit_data = {};
-    iinit_data.pSysMem = indices;
-    hres = device->CreateBuffer(&ibd, &iinit_data, &box_ib);
-    assert(hres == 0);
-
-    // INITIALIZING BUFFERS - /END -----------------
-
-    // setting matrixes that don't need to be set every frame...
-    // (proj matrix)
-    //  TODO: this has to be set when u resize too
-    XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * math::PI, WINDOW_ASPECT_RATIO, 1.0f, 1000.0f);
-    XMStoreFloat4x4(&mat_proj, P);
-
+    // initializing whatever demo we #included
+    DemoState demo_state = {};
+    lres = demo_init(&big_arena, &rctx, &demo_state);
 
     //initializing imgui
     // Create a Dear ImGui context, setup some options
@@ -487,11 +395,9 @@ fn int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
 
     // Initialize Platform + Renderer backends (here: using imgui_impl_win32.cpp + imgui_impl_dx11.cpp)
     ImGui_ImplWin32_Init(window);
-    ImGui_ImplDX11_Init(device, device_context);
+    ImGui_ImplDX11_Init(rctx.device, rctx.device_context);
 
-    //imgui end
-
-    // main loop
+    // main loop state
     bool is_running = true;
 
     i64 perf_freq;
@@ -499,8 +405,6 @@ fn int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
     f64 seconds_per_count = 1.0 / (f64) perf_freq;
     i64 time_last;
     QueryPerformanceCounter((LARGE_INTEGER *) &time_last);
-
-    bool show_demo_window = true;
 
     while (is_running) {
         MSG msg;
@@ -512,76 +416,20 @@ fn int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
             DispatchMessageA(&msg);
         }
 
-
-
         i64 time_now;
         QueryPerformanceCounter((LARGE_INTEGER *) &time_now);
         time_last = time_now;
+
         //        i64 dt = time_now - time_last;
         // log("dt is %i, in miliseconds it is: %f", dt, ((f64)dt * seconds_per_count) * 1000);
 
-        // Update program state ---------------
-
-        // Beginning of frame: update Renderer + Platform backend, start Dear ImGui frame
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-
-//        // Any application code here
-//        ImGui::Text("Hello, world!");
-
-//        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-
-        // End of frame: render Dear ImGui
+        demo_update_render(&rctx, &demo_state);
         ImGui::Render();
-
-        XMMATRIX cam_rot_mat = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(cam_pitch, cam_yaw, 0.0f));
-        XMVECTOR cam_pos_start = XMVectorSet(0.0, 0.0, -1.0 * cam_radius, 1.0);
-
-        XMVECTOR cam_pos = XMVector3Transform(cam_pos_start, cam_rot_mat);
-        XMVECTOR cam_target = XMVectorZero();
-        XMVECTOR cam_up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-        XMMATRIX view_mat = XMMatrixLookAtLH(cam_pos, cam_target, cam_up);
-        XMStoreFloat4x4(&mat_view, view_mat);
-
-        // Update program state /end ---------------
-
-
-        // Draw ---------------
-        device_context->ClearRenderTargetView(render_target_view, reinterpret_cast<const f32 *>(&Colors::Blue));
-
-        device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-        device_context->IASetInputLayout(input_layout);
-        device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        u32 stride = sizeof(Vertex);
-        u32 offset = 0;
-        device_context->IASetVertexBuffers(0, 1, &box_vb, &stride, &offset);
-        device_context->IASetIndexBuffer(box_ib, DXGI_FORMAT_R32_UINT, 0);
-
-        //Set constants
-        XMMATRIX world = XMLoadFloat4x4(&mat_world);
-        XMMATRIX view = XMLoadFloat4x4(&mat_view);
-        XMMATRIX proj = XMLoadFloat4x4(&mat_proj);
-        XMMATRIX wvp = world * view * proj;
-        wvp_mat_var->SetMatrix(reinterpret_cast<float *>(&wvp));
-
-        // Drawing indexes
-        D3DX11_TECHNIQUE_DESC tech_desc;
-        tech->GetDesc(&tech_desc);
-        for (u32 p = 0; p < tech_desc.Passes; ++p) {
-            tech->GetPassByIndex(p)->Apply(0, device_context);
-            device_context->DrawIndexed(index_count, 0, 0);
-        }
-
-        //drawing imgui
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
-        // Draw /end ---------------
-
-        swapchain->Present(1, 0);
+        rctx.swapchain->Present(1, 0);
     }
 
     return 0;

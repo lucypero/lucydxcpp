@@ -5,13 +5,15 @@ call build_shaders.bat
 
 set debug=1==1
 
+set compiler_flags=/W3 /WX
+
 if %debug% (
     echo Debug mode...
-    set compiler_flags=/Zi /DDEBUG /MDd
+    set compiler_flags=%compiler_flags% /Zi /DDEBUG /MDd
     set linker_flags=Effects11d.lib imguid.obj
 ) else (
     echo Release mode...
-    set compiler_flags=/O2 /MD
+    set compiler_flags=%compiler_flags% /O2 /MD
     set linker_flags=Effects11.lib imgui.obj
 )
 
