@@ -11,6 +11,7 @@ typedef float f32;
 typedef double f64;
 
 #define arrsize(arr) (sizeof(arr) / sizeof(arr[0]))
+#define fn static
 
 enum LucyResult {
     LRES_OK = 0,
@@ -33,7 +34,7 @@ struct Buf {
     u64 size;
 };
 
-void log(const char* format, ...) {
+fn void log(const char* format, ...) {
     va_list argp;
     char buf[200];
     va_start(argp, format);
@@ -44,7 +45,7 @@ void log(const char* format, ...) {
     OutputDebugStringA(buf);
 }
 
-void *arena_push(Arena *arena, u64 size) {
+fn void *arena_push(Arena *arena, u64 size) {
     void* ret_buf = arena->buf + arena->offset;
 
     arena->offset += size;
@@ -55,25 +56,25 @@ void *arena_push(Arena *arena, u64 size) {
     return ret_buf;
 }
 
-void arena_clear(Arena *arena) {
+fn void arena_clear(Arena *arena) {
     arena->offset = 0;
 }
 
-void arena_zero(Arena *arena) {
+fn void arena_zero(Arena *arena) {
     arena->offset = 0;
     memset(arena->buf, 0, arena->size);
 }
 
-u64 arena_save(Arena *arena) {
+fn u64 arena_save(Arena *arena) {
     return arena->offset;
 }
 
-void arena_restore(Arena *arena, u64 checkpoint) {
+fn void arena_restore(Arena *arena, u64 checkpoint) {
     arena->offset = checkpoint;
 }
 
 //this allocs a buffer w the file contents
-LucyResult read_whole_file(Arena *arena, const char *file_path, Buf *out_buf) {
+fn LucyResult read_whole_file(Arena *arena, const char *file_path, Buf *out_buf) {
     HANDLE hTextFile = CreateFileA(file_path, GENERIC_READ, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     LucyResult ret = LRES_OK;
 

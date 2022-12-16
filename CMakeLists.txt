@@ -8,8 +8,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "ON" FORCE)
 
-
 add_compile_definitions("DEBUG")
-include_directories(third_party/Effects11/include)
+include_directories(third_party/include)
+include_directories(third_party/include/imgui)
 
-add_executable (${PROJECT_NAME} WIN32 dxbook.cpp)
+add_executable (${PROJECT_NAME} WIN32 src/dxbook.cpp)

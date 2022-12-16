@@ -1,25 +1,27 @@
 @echo off
+call setup-msvc.bat
 
-rem consider calling build_shaders here so everything gets built in one place.
+call build_shaders.bat
 
 set debug=1==1
 
 if %debug% (
     echo Debug mode...
     set compiler_flags=/Zi /DDEBUG /MDd
-    set linker_flags= ..\third_party\Effects11\Effects11d.lib
+    set linker_flags=Effects11d.lib imguid.obj
 ) else (
     echo Release mode...
     set compiler_flags=/O2 /MD
-    set linker_flags= ..\third_party\Effects11\Effects11.lib
+    set linker_flags=Effects11.lib imgui.obj
 )
 
-call setup-msvc.bat
 if not exist "build" mkdir build
 pushd build
-%CL_BIN% ..\dxbook.cpp ^
-  /I..\third_party\Effects11\include ^
+
+%CL_BIN% ..\src\dxbook.cpp ^
+  /I..\third_party\include ^
+  /I..\third_party\include\imgui ^
   /std:c++20 %compiler_flags% /nologo /Felucydxcpp ^
-  /link %linker_flags% ^
+  /link /LIBPATH:..\third_party\lib %linker_flags% ^
   /SUBSYSTEM:Windows
 popd

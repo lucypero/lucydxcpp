@@ -12,5 +12,5 @@ if %debug% (
 
 if not exist "build" mkdir build
 pushd build
-%FXC_BIN% %flags% /nologo /T fx_5_0 /Fo color.fxo ..\shaders\color.fx
+%FXC_BIN% %flags% /nologo /T fx_5_0 /Fo color.fxo ..\src\shaders\color.fx
 popd

@@ -10,7 +10,11 @@
 #include <stdio.h>
 #include <windows.h>
 
-#include "d3dx11effect.h"
+// libraries
+#include "Effects11\d3dx11effect.h"
+#include "imgui\imgui.h"
+#include "imgui\backends\imgui_impl_win32.h"
+#include "imgui\backends\imgui_impl_dx11.h"
 
 #include "DirectXMath.h"
 #include "DirectXPackedVector.h"
@@ -49,56 +53,57 @@ namespace Colors {
 // total memory allocated
 #define TOTAL_MEM (1000 * 1024)
 
-#define GET_X_LPARAM(lp)                        ((int)(short)LOWORD(lp))
-#define GET_Y_LPARAM(lp)                        ((int)(short)HIWORD(lp))
+#define GET_X_LPARAM(lp) ((int) (short) LOWORD(lp))
+#define GET_Y_LPARAM(lp) ((int) (short) HIWORD(lp))
 
 // Gotta make these globals for now so i can access them from WndProc
 POINT last_mouse_pos = {};
 HWND window = {};
-f32 cam_theta = 1.5f * math::PI;
-f32 cam_phi = 0.25f * math::PI;
+f32 cam_yaw = 0.0f;
+f32 cam_pitch = 0.0f;
 f32 cam_radius = 5.0f;
 
-void OnMouseDown(WPARAM btnState, i32 x, i32 y){
-    log("on mouse down");
+fn void OnMouseDown(WPARAM btnState, i32 x, i32 y) {
     last_mouse_pos.x = x;
     last_mouse_pos.y = y;
     SetCapture(window);
 }
 
-void OnMouseUp(WPARAM btnState, i32 x, i32 y)  {
-    log("on mouse up");
+fn void OnMouseUp(WPARAM btnState, i32 x, i32 y) {
     ReleaseCapture();
 }
 
-void OnMouseMove(WPARAM btnState, i32 x, i32 y){
-    log("on mouse move");
-
-    if ( (btnState & MK_LBUTTON) != 0) {
+fn void OnMouseMove(WPARAM btnState, i32 x, i32 y) {
+    if ((btnState & MK_LBUTTON) != 0) {
         // Make each pixel correspond to a quarter of a degree.
         float dx = XMConvertToRadians(
-                0.25f*static_cast<float>(x - last_mouse_pos.x));
+                0.25f * static_cast<f32>(x - last_mouse_pos.x));
         float dy = XMConvertToRadians(
-                0.25f*static_cast<float>(y - last_mouse_pos.y));
-        // Update angles based on input to orbit camera around box.
-        cam_theta += dx;
-        cam_phi += dy;
-        // Restrict the angle cam_phi.
-        cam_phi = math::clamp(cam_phi, 0.1f, math::PI-0.1f);
-    } else if( (btnState & MK_RBUTTON) != 0 ) {
-        // Make each pixel correspond to 0.005 unit in the scene.
-        float dx = 0.005f*static_cast<float>(x - last_mouse_pos.x);
-        float dy = 0.005f*static_cast<float>(y - last_mouse_pos.y);
-        // Update the camera radius based on input.
+                0.25f * static_cast<f32>(y - last_mouse_pos.y));
+        cam_yaw += dx;
+        cam_pitch -= dy;
+
+        //limiting pitch
+        cam_pitch = math::clamp(cam_pitch, -1.4, 1.4);
+
+    } else if ((btnState & MK_RBUTTON) != 0) {
+        float dx = 0.005f * static_cast<f32>(x - last_mouse_pos.x);
+        float dy = 0.005f * static_cast<f32>(y - last_mouse_pos.y);
         cam_radius += dx - dy;
-        // Restrict the radius.
         cam_radius = math::clamp(cam_radius, 3.0f, 15.0f);
     }
     last_mouse_pos.x = x;
     last_mouse_pos.y = y;
 }
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+
+    if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam))
+        return true;
+
     LRESULT result = 0;
     switch (msg) {
         case WM_KEYDOWN: {
@@ -130,7 +135,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     return result;
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
+fn int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
 
     // allocate all memory for the whole game
     void *base_mem = VirtualAlloc(0, TOTAL_MEM, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -164,12 +169,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     LONG initial_height = initialRect.bottom - initialRect.top;
 
     window = CreateWindowExA(WS_EX_OVERLAPPEDWINDOW,
-                                  TITLE, TITLE,
-                                  WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                                  CW_USEDEFAULT, CW_USEDEFAULT,
-                                  initial_width,
-                                  initial_height,
-                                  nullptr, nullptr, hInstance, nullptr);
+                             TITLE, TITLE,
+                             WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                             CW_USEDEFAULT, CW_USEDEFAULT,
+                             initial_width,
+                             initial_height,
+                             nullptr, nullptr, hInstance, nullptr);
 
     if (!window) {
         MessageBoxA(nullptr, "CreateWindowEx failed", "Fatal Error", MB_OK);
@@ -390,7 +395,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     u32 vert_count = 8;
 
-
     ID3D11Buffer *box_vb;
 
     D3D11_BUFFER_DESC vbd = {};
@@ -405,28 +409,53 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // create index buffer
     u32 indices[] = {
             //front face
-            0, 1, 2,
-            0, 2, 3,
+            0,
+            1,
+            2,
+            0,
+            2,
+            3,
 
             //back face
-            4, 6, 5,
-            4, 7, 6,
+            4,
+            6,
+            5,
+            4,
+            7,
+            6,
 
             // left face
-            4, 5, 1,
-            4, 1, 0,
+            4,
+            5,
+            1,
+            4,
+            1,
+            0,
 
             // right face
-            3, 2, 6,
-            3, 6, 7,
+            3,
+            2,
+            6,
+            3,
+            6,
+            7,
 
             // top face
-            1, 5, 6,
-            1, 6, 2,
+            1,
+            5,
+            6,
+            1,
+            6,
+            2,
 
             //bottom face
-            4, 0, 3,
-            4, 3, 7};
+            4,
+            0,
+            3,
+            4,
+            3,
+            7,
+    };
 
     u32 index_count = 36;
 
@@ -444,8 +473,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // INITIALIZING BUFFERS - /END -----------------
 
     // setting matrixes that don't need to be set every frame...
+    // (proj matrix)
+    //  TODO: this has to be set when u resize too
     XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * math::PI, WINDOW_ASPECT_RATIO, 1.0f, 1000.0f);
     XMStoreFloat4x4(&mat_proj, P);
+
+
+    //initializing imgui
+    // Create a Dear ImGui context, setup some options
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;// Enable some options
+
+    // Initialize Platform + Renderer backends (here: using imgui_impl_win32.cpp + imgui_impl_dx11.cpp)
+    ImGui_ImplWin32_Init(window);
+    ImGui_ImplDX11_Init(device, device_context);
+
+    //imgui end
 
     // main loop
     bool is_running = true;
@@ -455,6 +499,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     f64 seconds_per_count = 1.0 / (f64) perf_freq;
     i64 time_last;
     QueryPerformanceCounter((LARGE_INTEGER *) &time_last);
+
+    bool show_demo_window = true;
 
     while (is_running) {
         MSG msg;
@@ -466,26 +512,35 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             DispatchMessageA(&msg);
         }
 
+
+
         i64 time_now;
         QueryPerformanceCounter((LARGE_INTEGER *) &time_now);
-        i64 dt = time_now - time_last;
         time_last = time_now;
+        //        i64 dt = time_now - time_last;
         // log("dt is %i, in miliseconds it is: %f", dt, ((f64)dt * seconds_per_count) * 1000);
 
         // Update program state ---------------
 
-        //convert spherical to cartesian coordinates
-        f32 x = cam_radius * sinf(cam_phi) * cosf(cam_theta);
-        f32 y = cam_radius * sinf(cam_phi) * sinf(cam_theta);
-        f32 z = cam_radius * cosf(cam_phi);
+        // Beginning of frame: update Renderer + Platform backend, start Dear ImGui frame
+        ImGui_ImplDX11_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        ImGui::NewFrame();
 
-        //debug testing
-        //        x = 0.0f;
-        //        y = 0.0f;
-        //        z = 10.0f;
+//        // Any application code here
+//        ImGui::Text("Hello, world!");
 
-        // Build the view matrix.
-        XMVECTOR cam_pos = XMVectorSet(x, y, z, 1.0f);
+//        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
+
+        // End of frame: render Dear ImGui
+        ImGui::Render();
+
+        XMMATRIX cam_rot_mat = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(cam_pitch, cam_yaw, 0.0f));
+        XMVECTOR cam_pos_start = XMVectorSet(0.0, 0.0, -1.0 * cam_radius, 1.0);
+
+        XMVECTOR cam_pos = XMVector3Transform(cam_pos_start, cam_rot_mat);
         XMVECTOR cam_target = XMVectorZero();
         XMVECTOR cam_up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
@@ -520,6 +575,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             tech->GetPassByIndex(p)->Apply(0, device_context);
             device_context->DrawIndexed(index_count, 0, 0);
         }
+
+        //drawing imgui
+        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
         // Draw /end ---------------
 
