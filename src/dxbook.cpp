@@ -22,6 +22,9 @@ using namespace DirectX;
 
 #include <cassert>
 
+// cpp SDL stuff (temporary) (delete eventually)
+#include <vector>
+
 // project source files
 #include "utils.cpp"
 #include "exercises.cpp"
@@ -74,7 +77,8 @@ f32 cam_pitch = 0.0f;
 f32 cam_radius = 5.0f;
 
 // demo file (only include one of these depending on what demo you want to run!)
-#include "demo_box.cpp"
+//#include "demo_box.cpp"
+#include "demo_hills.cpp"
 
 fn void OnMouseDown(WPARAM btnState, i32 x, i32 y) {
     last_mouse_pos.x = x;
@@ -104,7 +108,7 @@ fn void OnMouseMove(WPARAM btnState, i32 x, i32 y) {
         float dx = 0.005f * static_cast<f32>(x - last_mouse_pos.x);
         float dy = 0.005f * static_cast<f32>(y - last_mouse_pos.y);
         cam_radius += dx - dy;
-        cam_radius = math::clamp(cam_radius, 3.0f, 15.0f);
+        cam_radius = math::clamp(cam_radius, 3.0f, 200.0f);
     }
     last_mouse_pos.x = x;
     last_mouse_pos.y = y;

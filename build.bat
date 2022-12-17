@@ -5,7 +5,7 @@ call build_shaders.bat
 
 set debug=1==1
 
-set compiler_flags=/W3 /WX
+set compiler_flags=/W3 /WX /EHsc
 
 if %debug% (
     echo Debug mode...
