@@ -1,7 +1,7 @@
 @echo off
 call setup-msvc.bat
 
-call build_shaders.bat
+@REM call build_shaders.bat
 
 set debug=1==1
 

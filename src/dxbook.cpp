@@ -26,9 +26,10 @@ using namespace DirectX;
 #include <vector>
 
 // project source files
+#include "lucytypes.cpp"
+#include "math.cpp"
 #include "utils.cpp"
 #include "exercises.cpp"
-#include "math.cpp"
 
 #define TITLE "lucydxcpp"
 #define ENABLE_MSAA true
@@ -78,7 +79,8 @@ f32 cam_radius = 5.0f;
 
 // demo file (only include one of these depending on what demo you want to run!)
 //#include "demo_box.cpp"
-#include "demo_hills.cpp"
+//#include "demo_hills.cpp"
+#include "demo_shapes.cpp"
 
 fn void OnMouseDown(WPARAM btnState, i32 x, i32 y) {
     last_mouse_pos.x = x;
@@ -383,8 +385,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             .size = TOTAL_MEM,
     };
 
+    LucyResult lres;
+
     RenderContext rctx = {};
-    LucyResult lres = render_context_init(hInstance, &rctx);
+    lres = render_context_init(hInstance, &rctx);
     assert(lres == 0);
 
     // initializing whatever demo we #included
