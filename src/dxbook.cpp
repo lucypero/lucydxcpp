@@ -34,6 +34,22 @@ using namespace DirectX;
 #define TITLE "lucydxcpp"
 #define ENABLE_MSAA true
 
+// Define the demo struct number to run here
+
+// 0: Box Demo
+// 1: Hills Demo
+// 2: Shapes Demo
+#define DEMO_TO_RUN 2
+
+#if DEMO_TO_RUN == 0
+#define DEMOSTRUCT BoxDemo
+#elif DEMO_TO_RUN == 1
+#define DEMOSTRUCT HillsDemo
+#elif DEMO_TO_RUN == 2
+#define DEMOSTRUCT ShapesDemo
+#endif
+
+
 const u32 WINDOW_WIDTH = 1280;
 const u32 WINDOW_HEIGHT = 720;
 const f32 WINDOW_ASPECT_RATIO = (f32) WINDOW_WIDTH / (f32) WINDOW_HEIGHT;
@@ -50,6 +66,10 @@ struct RenderContext {
     IDXGISwapChain1 *swapchain;
     ID3D11RenderTargetView *render_target_view;
     ID3D11DepthStencilView *depth_stencil_view;
+    POINT last_mouse_pos;
+    f32 cam_yaw;
+    f32 cam_pitch;
+    f32 cam_radius;
 };
 
 namespace Colors {
@@ -71,49 +91,43 @@ namespace Colors {
 
 // Gotta make these globals for now so i can access them from WndProc
 // TODO: stop making these globals! u gotta pass as truct to wndproc!
-POINT last_mouse_pos = {};
-HWND window = {};
-f32 cam_yaw = 0.0f;
-f32 cam_pitch = 0.0f;
-f32 cam_radius = 5.0f;
 
-// demo file (only include one of these depending on what demo you want to run!)
-//#include "demo_box.cpp"
-//#include "demo_hills.cpp"
+#include "demo_box.cpp"
+#include "demo_hills.cpp"
 #include "demo_shapes.cpp"
 
-fn void OnMouseDown(WPARAM btnState, i32 x, i32 y) {
-    last_mouse_pos.x = x;
-    last_mouse_pos.y = y;
-    SetCapture(window);
+fn void OnMouseDown(WPARAM btnState, i32 x, i32 y, RenderContext *ctx) {
+    ctx->last_mouse_pos.x = x;
+    ctx->last_mouse_pos.y = y;
+    SetCapture(ctx->window);
 }
 
-fn void OnMouseUp(WPARAM btnState, i32 x, i32 y) {
+fn void OnMouseUp(WPARAM btnState, i32 x, i32 y, RenderContext *ctx) {
     ReleaseCapture();
 }
 
-fn void OnMouseMove(WPARAM btnState, i32 x, i32 y) {
+fn void OnMouseMove(WPARAM btnState, i32 x, i32 y, RenderContext *ctx) {
     if ((btnState & MK_LBUTTON) != 0) {
         // Make each pixel correspond to a quarter of a degree.
         float dx = XMConvertToRadians(
-                0.25f * static_cast<f32>(x - last_mouse_pos.x));
+                0.25f * static_cast<f32>(x - ctx->last_mouse_pos.x));
         float dy = XMConvertToRadians(
-                0.25f * static_cast<f32>(y - last_mouse_pos.y));
+                0.25f * static_cast<f32>(y - ctx->last_mouse_pos.y));
 
-        cam_yaw += dx;
-        cam_pitch -= dy;
+        ctx->cam_yaw += dx;
+        ctx->cam_pitch -= dy;
 
         //limiting pitch
-        cam_pitch = math::clamp(cam_pitch, -1.4f, 1.4f);
+        ctx->cam_pitch = math::clamp(ctx->cam_pitch, -1.4f, 1.4f);
 
     } else if ((btnState & MK_RBUTTON) != 0) {
-        float dx = 0.005f * static_cast<f32>(x - last_mouse_pos.x);
-        float dy = 0.005f * static_cast<f32>(y - last_mouse_pos.y);
-        cam_radius += dx - dy;
-        cam_radius = math::clamp(cam_radius, 3.0f, 200.0f);
+        float dx = 0.005f * static_cast<f32>(x - ctx->last_mouse_pos.x);
+        float dy = 0.005f * static_cast<f32>(y - ctx->last_mouse_pos.y);
+        ctx->cam_radius += dx - dy;
+        ctx->cam_radius = math::clamp(ctx->cam_radius, 3.0f, 200.0f);
     }
-    last_mouse_pos.x = x;
-    last_mouse_pos.y = y;
+    ctx->last_mouse_pos.x = x;
+    ctx->last_mouse_pos.y = y;
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp
@@ -135,6 +149,11 @@ fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
         }
     }
 
+    RenderContext *rctx = (RenderContext*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+    if(!rctx) {
+        return DefWindowProcA(hwnd, msg, wparam, lparam);
+    }
+
     // handling when controlling imgui
     if(do_imgui_handling) {
         switch (msg) {
@@ -150,15 +169,22 @@ fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
             case WM_LBUTTONDOWN:
             case WM_MBUTTONDOWN:
             case WM_RBUTTONDOWN:
-                last_mouse_pos.x = GET_X_LPARAM(lparam);
-                last_mouse_pos.y = GET_Y_LPARAM(lparam);
+                rctx->last_mouse_pos.x = GET_X_LPARAM(lparam);
+                rctx->last_mouse_pos.y = GET_Y_LPARAM(lparam);
                 return 0;
             default:
                 result = DefWindowProcA(hwnd, msg, wparam, lparam);
         }
     } else {
+
         // user handling (when not in imgui)
         switch (msg) {
+            case WM_CREATE: {
+                //SetWindowLongPtrA(window, GWLP_USERDATA, )
+
+                break;
+            }
+
             case WM_KEYDOWN: {
                 if (wparam == VK_ESCAPE)
                     DestroyWindow(hwnd);
@@ -171,15 +197,15 @@ fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
             case WM_LBUTTONDOWN:
             case WM_MBUTTONDOWN:
             case WM_RBUTTONDOWN:
-                OnMouseDown(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+                OnMouseDown(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam), rctx);
                 return 0;
             case WM_LBUTTONUP:
             case WM_MBUTTONUP:
             case WM_RBUTTONUP:
-                OnMouseUp(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+                OnMouseUp(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam), rctx);
                 return 0;
             case WM_MOUSEMOVE:
-                OnMouseMove(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+                OnMouseMove(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam), rctx);
                 return 0;
 
             default:
@@ -207,7 +233,7 @@ LucyResult render_context_init(HINSTANCE hInstance, RenderContext *out_render_ct
     LONG initial_width = initialRect.right - initialRect.left;
     LONG initial_height = initialRect.bottom - initialRect.top;
 
-    window = CreateWindowExA(WS_EX_OVERLAPPEDWINDOW,
+    HWND window = CreateWindowExA(WS_EX_OVERLAPPEDWINDOW,
                              TITLE, TITLE,
                              WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                              CW_USEDEFAULT, CW_USEDEFAULT,
@@ -219,6 +245,9 @@ LucyResult render_context_init(HINSTANCE hInstance, RenderContext *out_render_ct
         MessageBoxA(nullptr, "CreateWindowEx failed", "Fatal Error", MB_OK);
         return LRES_FAIL;
     }
+
+    SetWindowLongPtrA(window, GWLP_USERDATA, (LONG_PTR)out_render_ctx);
+
 
     // INITIALIZING DX ------------------------
 
@@ -364,6 +393,11 @@ LucyResult render_context_init(HINSTANCE hInstance, RenderContext *out_render_ct
     out_render_ctx->render_target_view = render_target_view;
     out_render_ctx->depth_stencil_view = depth_stencil_view;
 
+    out_render_ctx->last_mouse_pos = {};
+    out_render_ctx->cam_yaw = 0.0f;
+    out_render_ctx->cam_pitch = 0.0f;
+    out_render_ctx->cam_radius = 5.0f;
+
     return LRES_OK;
 }
 
@@ -392,8 +426,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     assert(lres == 0);
 
     // initializing whatever demo we #included
-    DemoState demo_state = {};
+    DEMOSTRUCT demo_state = {};
     lres = demo_init(&big_arena, &rctx, &demo_state);
+    assert(lres == LRES_OK);
 
     //initializing imgui
     // Create a Dear ImGui context, setup some options
@@ -402,7 +437,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;// Enable some options
 
     // Initialize Platform + Renderer backends (here: using imgui_impl_win32.cpp + imgui_impl_dx11.cpp)
-    ImGui_ImplWin32_Init(window);
+    ImGui_ImplWin32_Init(rctx.window);
     ImGui_ImplDX11_Init(rctx.device, rctx.device_context);
 
     // main loop state

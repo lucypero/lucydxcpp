@@ -1,5 +1,5 @@
 
-struct DemoState {
+struct ShapesDemo {
     ID3DX11EffectTechnique *tech;
     ID3DX11EffectMatrixVariable *wvp_mat_var;
     ID3D11Buffer *mVB;
@@ -36,7 +36,9 @@ struct DemoState {
     UINT mCylinderIndexCount;
 };
 
-fn LucyResult demo_init(Arena *arena, RenderContext *rctx, DemoState *out_demo_state) {
+fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_state) {
+
+    rctx->cam_radius = 30.0f;
 
 
     XMMATRIX I = XMMatrixIdentity();
@@ -232,11 +234,17 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, DemoState *out_demo_s
 }
 
 // update and render (runs every frame)
-fn void demo_update_render(RenderContext *rctx, DemoState *demo_state) {
+fn void demo_update_render(RenderContext *rctx, ShapesDemo *demo_state) {
+
+
+    //imgui stuff
+    ImGui::DragFloat("cam radius", &rctx->cam_radius, 0.1f, 100.0f, 10.0f);
+    ImGui::LabelText("hello", "helloo");
+    // /imgui
 
     // Build the view matrix.
-    XMMATRIX cam_rot_mat = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(cam_pitch, cam_yaw, 0.0f));
-    XMVECTOR cam_pos_start = XMVectorSet(0.0f, 0.0f, -1.0f * cam_radius, 1.0f);
+    XMMATRIX cam_rot_mat = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(rctx->cam_pitch, rctx->cam_yaw, 0.0f));
+    XMVECTOR cam_pos_start = XMVectorSet(0.0f, 0.0f, -1.0f * rctx->cam_radius, 1.0f);
 
     XMVECTOR cam_pos = XMVector3Transform(cam_pos_start, cam_rot_mat);
     XMVECTOR cam_target = XMVectorZero();
@@ -245,12 +253,12 @@ fn void demo_update_render(RenderContext *rctx, DemoState *demo_state) {
     XMMATRIX view_mat = XMMatrixLookAtLH(cam_pos, cam_target, cam_up);
     XMStoreFloat4x4(&demo_state->mView, view_mat);
 
-    // TODO u are here!!
-
     rctx->device_context->ClearRenderTargetView(rctx->render_target_view,
                                                 reinterpret_cast<const float *>(&Colors::Blue));
     rctx->device_context->ClearDepthStencilView(rctx->depth_stencil_view,
                                                 D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+
     rctx->device_context->IASetInputLayout(demo_state->mInputLayout);
     rctx->device_context->IASetPrimitiveTopology(
             D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -312,5 +320,4 @@ fn void demo_update_render(RenderContext *rctx, DemoState *demo_state) {
                                               demo_state->mSphereIndexOffset, demo_state->mSphereVertexOffset);
         }
     }
-    HR(rctx->swapchain->Present(0, 0));
 }

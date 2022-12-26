@@ -1,6 +1,6 @@
 // HILLS DEMO
 
-struct DemoState {
+struct HillsDemo {
     ID3DX11EffectTechnique *tech;
     ID3DX11EffectMatrixVariable *wvp_mat_var;
     ID3D11InputLayout *input_layout;
@@ -25,9 +25,9 @@ fn f32 get_height(f32 x, f32 z) {
     return 0.5f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
 }
 
-void regen_vertices(const DemoState *demo_state, const GeometryGenerator::MeshData *grid, std::vector<Vertex> *vertices) {
-    for(size_t i = 0; i < grid->vertices.size(); ++i) {
-        XMFLOAT3 p = grid->vertices[i].pos;
+void regen_vertices(const HillsDemo *demo_state, const GeometryGenerator::MeshData *grid, std::vector<Vertex> *vertices) {
+    for(size_t i = 0; i < grid->Vertices.size(); ++i) {
+        XMFLOAT3 p = grid->Vertices[i].Position;
 
         p.y = demo_state->height_cofactor * get_height(p.x, p.z);
 
@@ -54,12 +54,12 @@ void regen_vertices(const DemoState *demo_state, const GeometryGenerator::MeshDa
     }
 }
 
-fn LucyResult demo_init(Arena *arena, RenderContext *rctx, DemoState *out_demo_state) {
+fn LucyResult demo_init(Arena *arena, RenderContext *rctx, HillsDemo *out_demo_state) {
 
     out_demo_state->height_cofactor = 1.0f;
 
     //writing to global(sorry, change later!!)
-    cam_radius = 300.0f;
+    rctx->cam_radius = 300.0f;
 
     // VARIABLES like WVP matrix and stuff ------------
 
@@ -80,7 +80,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, DemoState *out_demo_s
 
     GeometryGenerator::create_grid(160.0f, 160.0f, 500, 500, &grid);
 
-    out_demo_state->grid_index_count = (u32)grid.indices.size();
+    out_demo_state->grid_index_count = (u32)grid.Indices.size();
 
     //
     // Extract the vertex elements we are interested and apply the
@@ -89,13 +89,13 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, DemoState *out_demo_s
     // hills, and snow mountain peaks.
     //
 
-    std::vector<Vertex> vertices(grid.vertices.size());
+    std::vector<Vertex> vertices(grid.Vertices.size());
 
     regen_vertices(out_demo_state, &grid, &vertices);
 
     D3D11_BUFFER_DESC vbd = {};
     vbd.Usage = D3D11_USAGE_DYNAMIC;
-    vbd.ByteWidth = sizeof(Vertex) * (u32)grid.vertices.size();
+    vbd.ByteWidth = sizeof(Vertex) * (u32)grid.Vertices.size();
     vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     D3D11_SUBRESOURCE_DATA vinit_data = {};
@@ -109,7 +109,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, DemoState *out_demo_s
     ibd.ByteWidth = sizeof(u32) * out_demo_state->grid_index_count;
     ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
     D3D11_SUBRESOURCE_DATA iinit_data = {};
-    iinit_data.pSysMem = &grid.indices[0];
+    iinit_data.pSysMem = &grid.Indices[0];
     hres = rctx->device->CreateBuffer(&ibd, &iinit_data, &out_demo_state->hills_ib);
     assert(hres == 0);
 
@@ -182,16 +182,15 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, DemoState *out_demo_s
 }
 
 // update and render (runs every frame)
-fn void demo_update_render(RenderContext *rctx, DemoState *demo_state) {
+fn void demo_update_render(RenderContext *rctx, HillsDemo *demo_state) {
 
     //imgui stuff
     ImGui::DragFloat("height factor", &demo_state->height_cofactor, 0.1f, 0.0f, 10.0f);
 
     // /imgui
 
-
-    XMMATRIX cam_rot_mat = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(cam_pitch, cam_yaw, 0.0f));
-    XMVECTOR cam_pos_start = XMVectorSet(0.0f, 0.0f, -1.0f * cam_radius, 1.0f);
+    XMMATRIX cam_rot_mat = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(rctx->cam_pitch, rctx->cam_yaw, 0.0f));
+    XMVECTOR cam_pos_start = XMVectorSet(0.0f, 0.0f, -1.0f * rctx->cam_radius, 1.0f);
 
     XMVECTOR cam_pos = XMVector3Transform(cam_pos_start, cam_rot_mat);
     XMVECTOR cam_target = XMVectorZero();
@@ -222,11 +221,11 @@ fn void demo_update_render(RenderContext *rctx, DemoState *demo_state) {
     // manipulating  vertices
     D3D11_MAPPED_SUBRESOURCE mapped_resource = {};
 
-    std::vector<Vertex> vertices(demo_state->grid.vertices.size());
+    std::vector<Vertex> vertices(demo_state->grid.Vertices.size());
     regen_vertices(demo_state, &demo_state->grid, &vertices);
 
     rctx->device_context->Map(demo_state->hills_vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource);
-    memcpy(mapped_resource.pData, &vertices[0], sizeof(Vertex) * demo_state->grid.vertices.size());
+    memcpy(mapped_resource.pData, &vertices[0], sizeof(Vertex) * demo_state->grid.Vertices.size());
     rctx->device_context->Unmap(demo_state->hills_vb, 0);
 
     // Drawing indexes

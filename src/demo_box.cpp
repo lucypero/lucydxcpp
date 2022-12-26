@@ -1,6 +1,6 @@
 // BOX DEMO
 
-struct DemoState {
+struct BoxDemo {
     ID3DX11EffectTechnique *tech;
     ID3DX11EffectMatrixVariable *wvp_mat_var;
     ID3D11InputLayout *input_layout;
@@ -17,7 +17,7 @@ struct DemoState {
     f32 cube_color[4];
 };
 
-fn LucyResult demo_init(Arena *arena, RenderContext *rctx, DemoState *out_demo_state) {
+fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_state) {
 
     // VARIABLES like WVP matrix and stuff ------------
 
@@ -177,12 +177,12 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, DemoState *out_demo_s
 }
 
 // update and render (runs every frame)
-fn void demo_update_render(RenderContext *rctx, DemoState *demo_state) {
+fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state) {
     ImGui::ColorEdit4("clear color", demo_state->clear_color);
     ImGui::ColorEdit4("cube color", demo_state->cube_color);
 
-    XMMATRIX cam_rot_mat = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(cam_pitch, cam_yaw, 0.0f));
-    XMVECTOR cam_pos_start = XMVectorSet(0.0f, 0.0f, -1.0f * cam_radius, 1.0f);
+    XMMATRIX cam_rot_mat = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(rctx->cam_pitch, rctx->cam_yaw, 0.0f));
+    XMVECTOR cam_pos_start = XMVectorSet(0.0f, 0.0f, -1.0f * rctx->cam_radius, 1.0f);
 
     XMVECTOR cam_pos = XMVector3Transform(cam_pos_start, cam_rot_mat);
     XMVECTOR cam_target = XMVectorZero();
