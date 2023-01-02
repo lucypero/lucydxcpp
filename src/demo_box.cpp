@@ -1,9 +1,11 @@
 // BOX DEMO
 
 struct BoxDemo {
+    // shader vars
     ID3DX11EffectTechnique *tech;
+    ID3D11InputLayout *mInputLayout;
+
     ID3DX11EffectMatrixVariable *wvp_mat_var;
-    ID3D11InputLayout *input_layout;
 
     ID3D11Buffer *box_vb;
     ID3D11Buffer *box_ib;
@@ -158,8 +160,9 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_sta
 
     // setting demo state
     out_demo_state->tech = tech;
+    out_demo_state->mInputLayout = input_layout;
+
     out_demo_state->wvp_mat_var = wvp_mat_var;
-    out_demo_state->input_layout = input_layout;
     out_demo_state->box_vb = box_vb;
     out_demo_state->box_ib = box_ib;
     out_demo_state->index_count = index_count;
@@ -198,7 +201,7 @@ fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state) {
     rctx->device_context->ClearRenderTargetView(rctx->render_target_view, demo_state->clear_color);
 
     rctx->device_context->ClearDepthStencilView(rctx->depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-    rctx->device_context->IASetInputLayout(demo_state->input_layout);
+    rctx->device_context->IASetInputLayout(demo_state->mInputLayout);
     rctx->device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     u32 stride = sizeof(Vertex);
     u32 offset = 0;

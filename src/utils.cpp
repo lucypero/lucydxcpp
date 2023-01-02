@@ -650,3 +650,60 @@ namespace GeometryGenerator {
         }
     }
 }// namespace GeometryGenerator
+
+
+// todo: this doesn't compile
+//  make a substruct w shader state and use that instead of a macro...
+
+LucyResult setup_color_shader(Arena *arena, RenderContext *rctx, Shader *out_shader) {
+
+    u64 checkpoint = arena_save(arena);
+
+    Buf color_fx_buf;
+    LucyResult lres = read_whole_file(arena, "build\\color.fxo", &color_fx_buf);
+    assert(lres == LRES_OK);
+
+    ID3DX11Effect *effect;
+
+    HRESULT hres = D3DX11CreateEffectFromMemory(
+            color_fx_buf.buf,
+            color_fx_buf.size,
+            0, rctx->device,
+            &effect);
+    assert(hres == 0);
+
+    //getting tech and WVP matrix from effect
+    ID3DX11EffectTechnique *tech = effect->GetTechniqueByName("ColorTech");
+    assert(tech->IsValid());
+
+    ID3DX11EffectMatrixVariable *wvp_mat_var = effect->GetVariableByName("gWorldViewProj")->AsMatrix();
+    assert(wvp_mat_var->IsValid());
+
+    // shader input layout
+
+    ID3D11InputLayout *input_layout = nullptr;
+    D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    };
+
+    D3DX11_PASS_DESC pass_desc;
+    tech->GetPassByIndex(0)->GetDesc(&pass_desc);
+
+    hres = rctx->device->CreateInputLayout(
+            inputElementDesc,
+            arrsize(inputElementDesc),
+            pass_desc.pIAInputSignature,
+            pass_desc.IAInputSignatureSize,
+            &input_layout);
+    assert(hres == 0);
+
+    // don't need the shader buffer anymore. color_fx_buf is invalid now.
+    arena_restore(arena, checkpoint);
+
+    out_shader->tech = tech;
+    out_shader->mInputLayout = input_layout;
+    out_shader->wvp_mat_var = wvp_mat_var;
+
+    return LRES_OK;
+}

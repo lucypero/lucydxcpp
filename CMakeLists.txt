@@ -11,5 +11,6 @@ set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "ON" FORCE)
 add_compile_definitions("DEBUG")
 include_directories(third_party/include)
 include_directories(third_party/include/imgui)
+include_directories(src/)
 
 add_executable (${PROJECT_NAME} WIN32 src/dxbook.cpp)

@@ -1,12 +1,15 @@
 
 struct ShapesDemo {
-    ID3DX11EffectTechnique *tech;
-    ID3DX11EffectMatrixVariable *wvp_mat_var;
+
+    // shader vars
+    Shader shader;
+
+    // rest
+
     ID3D11Buffer *mVB;
     ID3D11Buffer *mIB;
 
     ID3DX11Effect *mFX;
-    ID3D11InputLayout *mInputLayout;
 
     ID3D11RasterizerState *mWireframeRS;
 
@@ -39,7 +42,6 @@ struct ShapesDemo {
 fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_state) {
 
     rctx->cam_radius = 30.0f;
-
 
     XMMATRIX I = XMMatrixIdentity();
     XMStoreFloat4x4(&out_demo_state->mGridWorld, I);
@@ -160,50 +162,8 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
     assert(hres == 0);
 
     // SHADER LOADING ------------------------
-
-    u64 checkpoint = arena_save(arena);
-
-    Buf color_fx_buf;
-    LucyResult lres = read_whole_file(arena, "build\\color.fxo", &color_fx_buf);
-    assert(lres == LRES_OK);
-
-    ID3DX11Effect *effect;
-
-    hres = D3DX11CreateEffectFromMemory(
-            color_fx_buf.buf,
-            color_fx_buf.size,
-            0, rctx->device,
-            &effect);
-    assert(hres == 0);
-
-    //getting tech and WVP matrix from effect
-    ID3DX11EffectTechnique *tech = effect->GetTechniqueByName("ColorTech");
-    assert(tech->IsValid());
-
-    ID3DX11EffectMatrixVariable *wvp_mat_var = effect->GetVariableByName("gWorldViewProj")->AsMatrix();
-    assert(wvp_mat_var->IsValid());
-
-    // shader input layout
-
-    ID3D11InputLayout *input_layout = nullptr;
-    D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-
-    D3DX11_PASS_DESC pass_desc;
-    tech->GetPassByIndex(0)->GetDesc(&pass_desc);
-
-    hres = rctx->device->CreateInputLayout(
-            inputElementDesc,
-            arrsize(inputElementDesc),
-            pass_desc.pIAInputSignature,
-            pass_desc.IAInputSignatureSize,
-            &input_layout);
-    assert(hres == 0);
-
-    // don't need the shader buffer anymore. color_fx_buf is invalid now.
-    arena_restore(arena, checkpoint);
+    hres = setup_color_shader(arena, rctx, &out_demo_state->shader);
+    assert(hres == LRES_OK);
 
     // SHADER LOADING /END ------------------------
 
@@ -218,11 +178,6 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
     wireframeDesc.DepthClipEnable = true;
 
     HR(rctx->device->CreateRasterizerState(&wireframeDesc, &out_demo_state->mWireframeRS));
-
-    // setting demo state
-    out_demo_state->tech = tech;
-    out_demo_state->wvp_mat_var = wvp_mat_var;
-    out_demo_state->mInputLayout = input_layout;
 
     // setting matrixes that don't need to be set every frame...
     // (proj matrix)
@@ -258,8 +213,9 @@ fn void demo_update_render(RenderContext *rctx, ShapesDemo *demo_state) {
     rctx->device_context->ClearDepthStencilView(rctx->depth_stencil_view,
                                                 D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
+    Shader *shader = &demo_state->shader;
 
-    rctx->device_context->IASetInputLayout(demo_state->mInputLayout);
+    rctx->device_context->IASetInputLayout(shader->mInputLayout);
     rctx->device_context->IASetPrimitiveTopology(
             D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     rctx->device_context->RSSetState(demo_state->mWireframeRS);
@@ -273,39 +229,39 @@ fn void demo_update_render(RenderContext *rctx, ShapesDemo *demo_state) {
     XMMATRIX viewProj = view * proj;
     D3DX11_TECHNIQUE_DESC techDesc;
     XMMATRIX temp = {};
-    demo_state->tech->GetDesc(&techDesc);
+    shader->tech->GetDesc(&techDesc);
     for (UINT p = 0; p < techDesc.Passes; ++p) {
         // Draw the grid.
         XMMATRIX world = XMLoadFloat4x4(&demo_state->mGridWorld);
         temp = world * viewProj;
-        demo_state->wvp_mat_var->SetMatrix(
+        shader->wvp_mat_var->SetMatrix(
                 reinterpret_cast<float *>(&temp));
-        demo_state->tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+        shader->tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
         rctx->device_context->DrawIndexed(
                 demo_state->mGridIndexCount, demo_state->mGridIndexOffset, demo_state->mGridVertexOffset);
         // Draw the box.
         world = XMLoadFloat4x4(&demo_state->mBoxWorld);
         temp = world * viewProj;
-        demo_state->wvp_mat_var->SetMatrix(
+        shader->wvp_mat_var->SetMatrix(
                 reinterpret_cast<float *>(&temp));
-        demo_state->tech ->GetPassByIndex(p)->Apply(0, rctx->device_context);
+        shader->tech ->GetPassByIndex(p)->Apply(0, rctx->device_context);
         rctx->device_context->DrawIndexed(
                 demo_state->mBoxIndexCount, demo_state->mBoxIndexOffset, demo_state->mBoxVertexOffset);
         // Draw center sphere.
         world = XMLoadFloat4x4(&demo_state->mCenterSphere);
         temp = world * viewProj;
-        demo_state->wvp_mat_var->SetMatrix(
+        shader->wvp_mat_var->SetMatrix(
                 reinterpret_cast<float *>(&temp));
-        demo_state->tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+        shader->tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
         rctx->device_context->DrawIndexed(
                 demo_state->mSphereIndexCount, demo_state->mSphereIndexOffset, demo_state->mSphereVertexOffset);
         // Draw the cylinders.
         for (int i = 0; i < 10; ++i) {
             world = XMLoadFloat4x4(&demo_state->mCylWorld[i]);
             temp = world * viewProj;
-            demo_state->wvp_mat_var->SetMatrix(
+            shader->wvp_mat_var->SetMatrix(
                     reinterpret_cast<float *>(&temp));
-            demo_state->tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+            shader->tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
             rctx->device_context->DrawIndexed(demo_state->mCylinderIndexCount,
                                               demo_state->mCylinderIndexOffset, demo_state->mCylinderVertexOffset);
         }
@@ -313,9 +269,9 @@ fn void demo_update_render(RenderContext *rctx, ShapesDemo *demo_state) {
         for (int i = 0; i < 10; ++i) {
             world = XMLoadFloat4x4(&demo_state->mSphereWorld[i]);
             temp = world * viewProj;
-            demo_state->wvp_mat_var->SetMatrix(
+            shader->wvp_mat_var->SetMatrix(
                     reinterpret_cast<float *>(&temp));
-            demo_state->tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+            shader->tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
             rctx->device_context->DrawIndexed(demo_state->mSphereIndexCount,
                                               demo_state->mSphereIndexOffset, demo_state->mSphereVertexOffset);
         }
