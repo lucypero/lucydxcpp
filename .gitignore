@@ -11,4 +11,8 @@ buildtool/
 compile_commands.json
 ctime.exe
 docs/
+build.ninja
+cmake_install.cmake
+imgui.ini
+src/shaders/**.cod
 
