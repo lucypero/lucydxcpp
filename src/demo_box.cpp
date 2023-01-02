@@ -141,7 +141,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_sta
     // creating RSs
     D3D11_RASTERIZER_DESC wireframeDesc = {};
     wireframeDesc.FillMode = D3D11_FILL_WIREFRAME;
-    wireframeDesc.CullMode = D3D11_CULL_BACK;
+    wireframeDesc.CullMode = D3D11_CULL_NONE;
     wireframeDesc.FrontCounterClockwise = false;
     wireframeDesc.DepthClipEnable = true;
     HR(rctx->device->CreateRasterizerState(&wireframeDesc, &out_demo_state->rs_wireframe));
