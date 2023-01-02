@@ -5,7 +5,7 @@ call setup-msvc.bat
 
 set debug=1==1
 
-set compiler_flags=/W3 /WX /EHsc
+set compiler_flags=/W3 /WX /EHsc /FC
 
 if %debug% (
     echo Debug mode...

@@ -148,6 +148,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_sta
 
     D3D11_RASTERIZER_DESC solidDesc = {};
     solidDesc.FillMode = D3D11_FILL_SOLID;
+//     solidDesc.ScissorEnable = true;
     solidDesc.CullMode = D3D11_CULL_BACK;
     solidDesc.FrontCounterClockwise = false;
     solidDesc.DepthClipEnable = true;
@@ -197,6 +198,13 @@ fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state, f32 dt) {
     rctx->device_context->ClearDepthStencilView(rctx->depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     rctx->device_context->IASetInputLayout(shader->mInputLayout);
     rctx->device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // set scissor test
+//     D3D11_RECT rects[] = {
+//         {100, 100, 500, 500},
+//     };
+//     rctx->device_context->RSSetScissorRects(arrsize(rects), rects);
+
     rctx->device_context->RSSetState(picked_rs);
 
     u32 stride = sizeof(Vertex);

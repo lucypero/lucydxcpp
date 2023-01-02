@@ -76,7 +76,8 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
 
     GeometryGenerator::create_box(1.0f, 1.0f, 1.0f, &box);
     GeometryGenerator::create_grid(20.0f, 30.0f, 60, 40, &grid);
-    GeometryGenerator::create_sphere(0.5f, 20, 20, &sphere);
+//     GeometryGenerator::create_sphere(0.5f, 20, 20, &sphere);
+    GeometryGenerator::create_geosphere(0.5f, 2, &sphere);
     GeometryGenerator::create_cylinder(0.5f, 0.3f, 3.0f, 20, 20, &cylinder);
 
 
@@ -189,8 +190,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
 }
 
 // update and render (runs every frame)
-fn void demo_update_render(RenderContext *rctx, ShapesDemo *demo_state) {
-
+fn void demo_update_render(RenderContext *rctx, ShapesDemo *demo_state, f32 dt) {
 
     //imgui stuff
     ImGui::DragFloat("cam radius", &rctx->cam_radius, 0.1f, 100.0f, 10.0f);

@@ -32,7 +32,7 @@ using namespace DirectX;
 // 0: Box Demo
 // 1: Hills Demo
 // 2: Shapes Demo
-#define DEMO_TO_RUN 0
+#define DEMO_TO_RUN 2
 
 #if DEMO_TO_RUN == 0
 #define DEMOSTRUCT BoxDemo
