@@ -2,10 +2,7 @@
 
 struct BoxDemo {
     // shader vars
-    ID3DX11EffectTechnique *tech;
-    ID3D11InputLayout *mInputLayout;
-
-    ID3DX11EffectMatrixVariable *wvp_mat_var;
+    Shader shader;
 
     ID3D11Buffer *box_vb;
     ID3D11Buffer *box_ib;
@@ -17,6 +14,13 @@ struct BoxDemo {
 
     f32 clear_color[4];
     f32 cube_color[4];
+
+    f32 total_time;
+
+    ID3D11RasterizerState *rs_wireframe;
+    ID3D11RasterizerState *rs_solid;
+
+    bool enable_wireframe_view;
 };
 
 fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_state) {
@@ -36,49 +40,10 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_sta
 
     // SHADER LOADING ------------------------
 
-    u64 checkpoint = arena_save(arena);
+    HRESULT hres;
 
-    Buf color_fx_buf;
-    LucyResult lres = read_whole_file(arena, "build\\color.fxo", &color_fx_buf);
-    assert(lres == LRES_OK);
-
-    ID3DX11Effect *effect;
-
-    HRESULT hres = D3DX11CreateEffectFromMemory(
-            color_fx_buf.buf,
-            color_fx_buf.size,
-            0, rctx->device,
-            &effect);
-    assert(hres == 0);
-
-    //getting tech and WVP matrix from effect
-    ID3DX11EffectTechnique *tech = effect->GetTechniqueByName("ColorTech");
-    assert(tech->IsValid());
-
-    ID3DX11EffectMatrixVariable *wvp_mat_var = effect->GetVariableByName("gWorldViewProj")->AsMatrix();
-    assert(wvp_mat_var->IsValid());
-
-    // shader input layout
-
-    ID3D11InputLayout *input_layout = nullptr;
-    D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-
-    D3DX11_PASS_DESC pass_desc;
-    tech->GetPassByIndex(0)->GetDesc(&pass_desc);
-
-    hres = rctx->device->CreateInputLayout(
-            inputElementDesc,
-            arrsize(inputElementDesc),
-            pass_desc.pIAInputSignature,
-            pass_desc.IAInputSignatureSize,
-            &input_layout);
-    assert(hres == 0);
-
-    // don't need the shader buffer anymore. color_fx_buf is invalid now.
-    arena_restore(arena, checkpoint);
+    hres = setup_color_shader(arena, rctx, ShaderFile::ColorTrippy, &out_demo_state->shader);
+    assert(hres == LRES_OK);
 
     // SHADER LOADING /END ------------------------
 
@@ -159,16 +124,13 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_sta
     XMStoreFloat4x4(&mat_proj, P);
 
     // setting demo state
-    out_demo_state->tech = tech;
-    out_demo_state->mInputLayout = input_layout;
-
-    out_demo_state->wvp_mat_var = wvp_mat_var;
     out_demo_state->box_vb = box_vb;
     out_demo_state->box_ib = box_ib;
     out_demo_state->index_count = index_count;
     out_demo_state->mat_world = mat_world;
     out_demo_state->mat_view = mat_view;
     out_demo_state->mat_proj = mat_proj;
+    out_demo_state->total_time = 0.0f;
 
     f32 clear_color[4] = { 0.4f, 0.7f, 0.0f, 1.0f };
     memcpy(out_demo_state->clear_color, clear_color, sizeof(clear_color));
@@ -176,13 +138,43 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_sta
     f32 cube_color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
     memcpy(out_demo_state->cube_color, cube_color, sizeof(cube_color));
 
+    // creating RSs
+    D3D11_RASTERIZER_DESC wireframeDesc = {};
+    wireframeDesc.FillMode = D3D11_FILL_WIREFRAME;
+    wireframeDesc.CullMode = D3D11_CULL_BACK;
+    wireframeDesc.FrontCounterClockwise = false;
+    wireframeDesc.DepthClipEnable = true;
+    HR(rctx->device->CreateRasterizerState(&wireframeDesc, &out_demo_state->rs_wireframe));
+
+    D3D11_RASTERIZER_DESC solidDesc = {};
+    solidDesc.FillMode = D3D11_FILL_SOLID;
+    solidDesc.CullMode = D3D11_CULL_BACK;
+    solidDesc.FrontCounterClockwise = false;
+    solidDesc.DepthClipEnable = true;
+
+    HR(rctx->device->CreateRasterizerState(&solidDesc, &out_demo_state->rs_solid));
+
+    out_demo_state->enable_wireframe_view = false;
+
     return LRES_OK;
 }
 
 // update and render (runs every frame)
-fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state) {
+fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state, f32 dt) {
+
+    demo_state->total_time += dt;
+
     ImGui::ColorEdit4("clear color", demo_state->clear_color);
     ImGui::ColorEdit4("cube color", demo_state->cube_color);
+
+    ID3D11RasterizerState *picked_rs;
+    ImGui::Checkbox("wireframe mode", &demo_state->enable_wireframe_view);
+
+    if (demo_state->enable_wireframe_view) {
+        picked_rs = demo_state->rs_wireframe;
+    } else {
+        picked_rs = demo_state->rs_solid;
+    }
 
     XMMATRIX cam_rot_mat = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(rctx->cam_pitch, rctx->cam_yaw, 0.0f));
     XMVECTOR cam_pos_start = XMVectorSet(0.0f, 0.0f, -1.0f * rctx->cam_radius, 1.0f);
@@ -196,13 +188,17 @@ fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state) {
 
     // Update program state /end ---------------
 
+    Shader *shader = &demo_state->shader;
+
     // Draw ---------------
 //        device_context->ClearRenderTargetView(render_target_view, reinterpret_cast<const f32 *>(&Colors::Blue));
     rctx->device_context->ClearRenderTargetView(rctx->render_target_view, demo_state->clear_color);
 
     rctx->device_context->ClearDepthStencilView(rctx->depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-    rctx->device_context->IASetInputLayout(demo_state->mInputLayout);
+    rctx->device_context->IASetInputLayout(shader->mInputLayout);
     rctx->device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    rctx->device_context->RSSetState(picked_rs);
+
     u32 stride = sizeof(Vertex);
     u32 offset = 0;
     rctx->device_context->IASetVertexBuffers(0, 1, &demo_state->box_vb, &stride, &offset);
@@ -213,20 +209,22 @@ fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state) {
     XMMATRIX view = XMLoadFloat4x4(&demo_state->mat_view);
     XMMATRIX proj = XMLoadFloat4x4(&demo_state->mat_proj);
     XMMATRIX wvp = world * view * proj;
-    demo_state->wvp_mat_var->SetMatrix(reinterpret_cast<float *>(&wvp));
+    shader->wvp_mat_var->SetMatrix(reinterpret_cast<float *>(&wvp));
+
+    shader->time_var->SetFloat(demo_state->total_time);
 
     // change vertex colors based on imgui picked color
     D3D11_MAPPED_SUBRESOURCE mapped_resource = {};
 
     // create vertex buffer
     Vertex new_vertices[] = {
-            {XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(demo_state->cube_color)},
-            {XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(demo_state->cube_color)},
-            {XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(demo_state->cube_color)},
-            {XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(demo_state->cube_color)},
-            {XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(demo_state->cube_color)},
-            {XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(demo_state->cube_color)},
-            {XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(demo_state->cube_color)},
+            {XMFLOAT3(-1.0f, -1.0f, -1.0f), Colors::Black},
+            {XMFLOAT3(-1.0f, +1.0f, -1.0f), Colors::Blue},
+            {XMFLOAT3(+1.0f, +1.0f, -1.0f), Colors::Green},
+            {XMFLOAT3(+1.0f, -1.0f, -1.0f), Colors::Magenta},
+            {XMFLOAT3(-1.0f, -1.0f, +1.0f), Colors::Red},
+            {XMFLOAT3(-1.0f, +1.0f, +1.0f), Colors::White},
+            {XMFLOAT3(+1.0f, +1.0f, +1.0f), Colors::Yellow},
             {XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(demo_state->cube_color)},
     };
 
@@ -236,9 +234,9 @@ fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state) {
 
     // Drawing indexes
     D3DX11_TECHNIQUE_DESC tech_desc;
-    demo_state->tech->GetDesc(&tech_desc);
+    shader->tech->GetDesc(&tech_desc);
     for (u32 p = 0; p < tech_desc.Passes; ++p) {
-        demo_state->tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+        shader->tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
         rctx->device_context->DrawIndexed(demo_state->index_count, 0, 0);
     }
 }

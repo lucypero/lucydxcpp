@@ -35,6 +35,7 @@ struct Shader {
     ID3DX11EffectTechnique *tech;
     ID3D11InputLayout *mInputLayout;
     ID3DX11EffectMatrixVariable *wvp_mat_var;
+    ID3DX11EffectScalarVariable *time_var;
 };
 
 // total memory allocated
@@ -42,3 +43,8 @@ struct Shader {
 
 #define GET_X_LPARAM(lp) ((int) (short) LOWORD(lp))
 #define GET_Y_LPARAM(lp) ((int) (short) HIWORD(lp))
+
+enum class ShaderFile {
+    Color,
+    ColorTrippy
+};

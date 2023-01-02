@@ -20,8 +20,13 @@ struct VertexOut
     float4 Color: COLOR;
 };
 
+
 VertexOut VS(VertexIn vin)
 {
+
+    vin.Pos.xy += 0.5f * sin(vin.Pos.x) * sin(3.0f * gTime);
+    vin.Pos.z *= 0.6f + 0.4f * sin(2.0f*gTime);
+
     VertexOut vout;
 
     // Transform to homogeneous clip space.

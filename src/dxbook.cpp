@@ -32,7 +32,7 @@ using namespace DirectX;
 // 0: Box Demo
 // 1: Hills Demo
 // 2: Shapes Demo
-#define DEMO_TO_RUN 2
+#define DEMO_TO_RUN 0
 
 #if DEMO_TO_RUN == 0
 #define DEMOSTRUCT BoxDemo
@@ -421,15 +421,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         i64 time_now;
         QueryPerformanceCounter((LARGE_INTEGER *) &time_now);
+        i64 dt = time_now - time_last;
+        f32 dt_sec = (f32)((f64)dt * seconds_per_count);
         time_last = time_now;
-
-        //        i64 dt = time_now - time_last;
-        // log("dt is %i, in miliseconds it is: %f", dt, ((f64)dt * seconds_per_count) * 1000);
 
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-        demo_update_render(&rctx, &demo_state);
+        demo_update_render(&rctx, &demo_state, dt_sec);
         ImGui::Render();
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         rctx.swapchain->Present(1, 0);

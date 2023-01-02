@@ -655,12 +655,22 @@ namespace GeometryGenerator {
 // todo: this doesn't compile
 //  make a substruct w shader state and use that instead of a macro...
 
-LucyResult setup_color_shader(Arena *arena, RenderContext *rctx, Shader *out_shader) {
+LucyResult setup_color_shader(Arena *arena, RenderContext *rctx, ShaderFile shader_file, Shader *out_shader) {
 
     u64 checkpoint = arena_save(arena);
 
     Buf color_fx_buf;
-    LucyResult lres = read_whole_file(arena, "build\\color.fxo", &color_fx_buf);
+    LucyResult lres; 
+
+    switch (shader_file){
+        case ShaderFile::Color: {
+            lres = read_whole_file(arena, "build\\color.fxo", &color_fx_buf);
+        }; break;
+        case ShaderFile::ColorTrippy: {
+            lres = read_whole_file(arena, "build\\color_trippy.fxo", &color_fx_buf);
+        }; break;
+    };
+    
     assert(lres == LRES_OK);
 
     ID3DX11Effect *effect;
@@ -678,6 +688,9 @@ LucyResult setup_color_shader(Arena *arena, RenderContext *rctx, Shader *out_sha
 
     ID3DX11EffectMatrixVariable *wvp_mat_var = effect->GetVariableByName("gWorldViewProj")->AsMatrix();
     assert(wvp_mat_var->IsValid());
+
+    ID3DX11EffectScalarVariable *time_var = effect->GetVariableByName("gTime")->AsScalar();
+    assert(time_var->IsValid());
 
     // shader input layout
 
@@ -704,6 +717,7 @@ LucyResult setup_color_shader(Arena *arena, RenderContext *rctx, Shader *out_sha
     out_shader->tech = tech;
     out_shader->mInputLayout = input_layout;
     out_shader->wvp_mat_var = wvp_mat_var;
+    out_shader->time_var = time_var;
 
     return LRES_OK;
 }

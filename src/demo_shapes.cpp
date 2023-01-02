@@ -162,7 +162,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
     assert(hres == 0);
 
     // SHADER LOADING ------------------------
-    hres = setup_color_shader(arena, rctx, &out_demo_state->shader);
+    hres = setup_color_shader(arena, rctx, ShaderFile::Color, &out_demo_state->shader);
     assert(hres == LRES_OK);
 
     // SHADER LOADING /END ------------------------
