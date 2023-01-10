@@ -9,6 +9,8 @@
 #include <d3dcompiler.h>
 #include <stdio.h>
 #include <windows.h>
+#include <string>
+
 
 // libraries
 #include "Effects11\d3dx11effect.h"

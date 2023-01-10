@@ -39,7 +39,7 @@ struct Shader {
 };
 
 // total memory allocated
-#define TOTAL_MEM (1000 * 1024)
+#define TOTAL_MEM (100 * 1000000) // 100 MB
 
 #define GET_X_LPARAM(lp) ((int) (short) LOWORD(lp))
 #define GET_Y_LPARAM(lp) ((int) (short) HIWORD(lp))

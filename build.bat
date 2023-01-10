@@ -1,6 +1,11 @@
 @echo off
 call setup-msvc.bat
 
+if not exist "build" mkdir build
+pushd build
+
+ctime -begin ctime_file
+
 @REM call build_shaders.bat
 
 set debug=1==1
@@ -17,8 +22,6 @@ if %debug% (
     set linker_flags=Effects11.lib imgui.obj
 )
 
-if not exist "build" mkdir build
-pushd build
 
 %CL_BIN% ..\src\dxbook.cpp ^
   /I..\third_party\include ^
@@ -26,4 +29,6 @@ pushd build
   /std:c++20 %compiler_flags% /nologo /Felucydxcpp ^
   /link /LIBPATH:..\third_party\lib %linker_flags% ^
   /SUBSYSTEM:Windows
+
+ctime -end ctime_file
 popd
