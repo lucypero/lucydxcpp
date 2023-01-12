@@ -178,7 +178,7 @@ fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     return result;
 }
 
-LucyResult render_context_init(HINSTANCE hInstance, RenderContext *out_render_ctx) {
+LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext *out_render_ctx) {
 
     WNDCLASSEXA wndClassEx = {sizeof(wndClassEx)};
     wndClassEx.lpfnWndProc = WndProc;
@@ -346,6 +346,79 @@ LucyResult render_context_init(HINSTANCE hInstance, RenderContext *out_render_ct
 
     device_context->RSSetViewports(1, &vp);
 
+    // initializing everything dx related after dx init
+
+    // initializing basic_effect
+    BasicEffect basic_effect = {};
+
+    u64 shader_checkpoint = arena_save(arena);
+
+    Buf basic_fx_buf;
+    LucyResult lres; 
+    lres = read_whole_file(arena, "build\\basic.fxo", &basic_fx_buf);
+
+    if(lres != LRES_OK)
+        return lres;
+
+    hres = D3DX11CreateEffectFromMemory(
+            basic_fx_buf.buf,
+            basic_fx_buf.size,
+            0, out_render_ctx->device,
+            &basic_effect.effect);
+    assert(hres == 0);
+
+    // getting techs and variables
+	basic_effect.Light1Tech        = basic_effect.effect->GetTechniqueByName("Light1");
+	basic_effect.Light2Tech        = basic_effect.effect->GetTechniqueByName("Light2");
+	basic_effect.Light3Tech        = basic_effect.effect->GetTechniqueByName("Light3");
+	basic_effect.WorldViewProj     = basic_effect.effect->GetVariableByName("gWorldViewProj")->AsMatrix();
+	basic_effect.World             = basic_effect.effect->GetVariableByName("gWorld")->AsMatrix();
+	basic_effect.WorldInvTranspose = basic_effect.effect->GetVariableByName("gWorldInvTranspose")->AsMatrix();
+	basic_effect.EyePosW           = basic_effect.effect->GetVariableByName("gEyePosW")->AsVector();
+	basic_effect.DirLights         = basic_effect.effect->GetVariableByName("gDirLights");
+	basic_effect.PointLight        = basic_effect.effect->GetVariableByName("gPointLight");
+	basic_effect.Mat               = basic_effect.effect->GetVariableByName("gMaterial");
+
+    out_render_ctx->basic_effect = basic_effect;
+
+    // initializing input layouts
+    D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    };
+
+    D3DX11_PASS_DESC pass_desc;
+    basic_effect.Light1Tech->GetPassByIndex(0)->GetDesc(&pass_desc);
+
+    hres = out_render_ctx->device->CreateInputLayout(
+            inputElementDesc,
+            arrsize(inputElementDesc),
+            pass_desc.pIAInputSignature,
+            pass_desc.IAInputSignatureSize,
+            &out_render_ctx->il_pos_normal);
+    assert(hres == 0);
+
+    arena_restore(arena, shader_checkpoint);
+
+    // initialize rasterizer states
+
+    D3D11_RASTERIZER_DESC wireframeDesc = {};
+    wireframeDesc.FillMode = D3D11_FILL_WIREFRAME;
+    wireframeDesc.CullMode = D3D11_CULL_BACK;
+    wireframeDesc.FrontCounterClockwise = false;
+    wireframeDesc.DepthClipEnable = true;
+
+    HR(out_render_ctx->device->CreateRasterizerState(&wireframeDesc, &out_render_ctx->mWireframeRS));
+    wireframeDesc.FillMode = D3D11_FILL_SOLID;
+    HR(out_render_ctx->device->CreateRasterizerState(&wireframeDesc, &out_render_ctx->mSolidRS));
+
+    // read when this assert hits:
+
+    // now u gotta create your own lit demo as specced in your notebook
+    // u gotta write the basic effect shader...
+    // a lot is already initeialized here
+    assert(false);
+
     // INITIALIZING DX /END ------------------------
 
     out_render_ctx->window = window;
@@ -384,7 +457,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     LucyResult lres;
 
     RenderContext rctx = {};
-    lres = render_context_init(hInstance, &rctx);
+    lres = render_context_init(&big_arena, hInstance, &rctx);
     assert(lres == 0);
 
     // initializing whatever demo we #included

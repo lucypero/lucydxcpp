@@ -1,3 +1,13 @@
 
 NOTES:
 
+
+- maybe use statics for this.:
+    - init all effects needed
+    - put all the effects stuff in a struct
+        - basically all the techniques, and variables
+    - init all vert input desc ahead of time
+        - or helper for differnt kind of vert input desc
+
+
+

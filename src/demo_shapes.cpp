@@ -54,8 +54,8 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
     // loading obj
     ObjFile skull_obj = {};
     
-    // LucyResult res = load_obj(arena, "Models\\skull\\skull.obj", &skull_obj);
-    LucyResult res = load_obj(arena, "Models\\cube.obj", &skull_obj);
+    LucyResult res = load_obj(arena, "Models\\skull\\skull.obj", &skull_obj);
+    // LucyResult res = load_obj(arena, "Models\\cube.obj", &skull_obj);
     assert(res == LRES_OK);
 
     //printing obj
@@ -255,8 +255,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
 
     //creating rasterizer state
 
-    D3D11_RASTERIZER_DESC wireframeDesc;
-    ZeroMemory(&wireframeDesc, sizeof(D3D11_RASTERIZER_DESC));
+    D3D11_RASTERIZER_DESC wireframeDesc = {};
     wireframeDesc.FillMode = D3D11_FILL_SOLID;
     // wireframeDesc.FillMode = D3D11_FILL_WIREFRAME;
     wireframeDesc.CullMode = D3D11_CULL_BACK;
