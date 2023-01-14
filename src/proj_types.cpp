@@ -2,11 +2,16 @@ const u32 WINDOW_WIDTH = 1280;
 const u32 WINDOW_HEIGHT = 720;
 const f32 WINDOW_ASPECT_RATIO = (f32) WINDOW_WIDTH / (f32) WINDOW_HEIGHT;
 
-struct Vertex {
+struct ColorVertex {
     XMFLOAT3 Pos;
     XMFLOAT4 Color;
 };
 
+
+struct Vertex {
+    XMFLOAT3 Pos;
+    XMFLOAT3 Normal;
+};
 
 // shader and lighting structs
 
@@ -20,7 +25,7 @@ struct DirectionalLight
 	XMFLOAT4 Diffuse;
 	XMFLOAT4 Specular;
 	XMFLOAT3 Direction;
-	float Pad; // Pad the last float so we can set an array of lights if we wanted.
+	f32 Pad; // Pad the last float so we can set an array of lights if we wanted.
 };
 
 struct PointLight
@@ -31,11 +36,11 @@ struct PointLight
 
 	// Packed into 4D vector: (Position, Range)
 	XMFLOAT3 Position;
-	float Range;
+	f32 Range;
 
 	// Packed into 4D vector: (A0, A1, A2, Pad)
 	XMFLOAT3 Att;
-	float Pad; // Pad the last float so we can set an array of lights if we wanted.
+	f32 Pad; // Pad the last float so we can set an array of lights if we wanted.
 };
 
 struct SpotLight
@@ -84,9 +89,17 @@ struct BasicEffect {
 	ID3DX11EffectVariable* DirLights;
 
     // 1 point light
-	ID3DX11EffectVariable* PointLight;
+	ID3DX11EffectVariable* point_light;
 
 	ID3DX11EffectVariable* Mat;
+
+	void SetWorldViewProj(CXMMATRIX M)                  { WorldViewProj->SetMatrix(reinterpret_cast<const float*>(&M)); }
+	void SetWorld(CXMMATRIX M)                          { World->SetMatrix(reinterpret_cast<const float*>(&M)); }
+	void SetWorldInvTranspose(CXMMATRIX M)              { WorldInvTranspose->SetMatrix(reinterpret_cast<const float*>(&M)); }
+	void SetEyePosW(const XMFLOAT3& v)                  { EyePosW->SetRawValue(&v, 0, sizeof(XMFLOAT3)); }
+	void SetDirLights(const DirectionalLight *lights)   { DirLights->SetRawValue(lights, 0, 3*sizeof(DirectionalLight)); }
+	void SetPointLight(const PointLight *light)         { point_light->SetRawValue(light, 0, sizeof(PointLight)); }
+	void SetMaterial(const Material *mat)               { Mat->SetRawValue(mat, 0, sizeof(Material)); }
 };
 
 struct RenderContext {

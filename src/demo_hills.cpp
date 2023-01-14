@@ -25,7 +25,7 @@ fn f32 get_height(f32 x, f32 z) {
     return 0.5f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
 }
 
-void regen_vertices(const HillsDemo *demo_state, const GeometryGenerator::MeshData *grid, std::vector<Vertex> *vertices) {
+void regen_vertices(const HillsDemo *demo_state, const GeometryGenerator::MeshData *grid, std::vector<ColorVertex> *vertices) {
     for(size_t i = 0; i < grid->Vertices.size(); ++i) {
         XMFLOAT3 p = grid->Vertices[i].Position;
 
@@ -89,13 +89,13 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, HillsDemo *out_demo_s
     // hills, and snow mountain peaks.
     //
 
-    std::vector<Vertex> vertices(grid.Vertices.size());
+    std::vector<ColorVertex> vertices(grid.Vertices.size());
 
     regen_vertices(out_demo_state, &grid, &vertices);
 
     D3D11_BUFFER_DESC vbd = {};
     vbd.Usage = D3D11_USAGE_DYNAMIC;
-    vbd.ByteWidth = sizeof(Vertex) * (u32)grid.Vertices.size();
+    vbd.ByteWidth = sizeof(ColorVertex) * (u32)grid.Vertices.size();
     vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     D3D11_SUBRESOURCE_DATA vinit_data = {};
@@ -206,7 +206,7 @@ fn void demo_update_render(RenderContext *rctx, HillsDemo *demo_state) {
     rctx->device_context->ClearDepthStencilView(rctx->depth_stencil_view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     rctx->device_context->IASetInputLayout(demo_state->input_layout);
     rctx->device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    u32 stride = sizeof(Vertex);
+    u32 stride = sizeof(ColorVertex);
     u32 offset = 0;
     rctx->device_context->IASetVertexBuffers(0, 1, &demo_state->hills_vb, &stride, &offset);
     rctx->device_context->IASetIndexBuffer(demo_state->hills_ib, DXGI_FORMAT_R32_UINT, 0);
@@ -221,11 +221,11 @@ fn void demo_update_render(RenderContext *rctx, HillsDemo *demo_state) {
     // manipulating  vertices
     D3D11_MAPPED_SUBRESOURCE mapped_resource = {};
 
-    std::vector<Vertex> vertices(demo_state->grid.Vertices.size());
+    std::vector<ColorVertex> vertices(demo_state->grid.Vertices.size());
     regen_vertices(demo_state, &demo_state->grid, &vertices);
 
     rctx->device_context->Map(demo_state->hills_vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource);
-    memcpy(mapped_resource.pData, &vertices[0], sizeof(Vertex) * demo_state->grid.Vertices.size());
+    memcpy(mapped_resource.pData, &vertices[0], sizeof(ColorVertex) * demo_state->grid.Vertices.size());
     rctx->device_context->Unmap(demo_state->hills_vb, 0);
 
     // Drawing indexes

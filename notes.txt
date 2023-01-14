@@ -2,12 +2,11 @@
 NOTES:
 
 
-- maybe use statics for this.:
-    - init all effects needed
-    - put all the effects stuff in a struct
-        - basically all the techniques, and variables
-    - init all vert input desc ahead of time
-        - or helper for differnt kind of vert input desc
+where i am:
 
+- i am writing the lighting demo.
+- looks bad. 
+- maybe i am not setting the vertices well, from the obj
+- just add imgui controls for everything, it will help debugging anyway.
 
 

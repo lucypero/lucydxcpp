@@ -50,7 +50,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_sta
     // INITIALIZING BUFFERS -----------------
 
     // create vertex buffer
-    Vertex vertices[] = {
+    ColorVertex vertices[] = {
             {XMFLOAT3(-1.0f, -1.0f, -1.0f), Colors::White},
             {XMFLOAT3(-1.0f, +1.0f, -1.0f), Colors::Black},
             {XMFLOAT3(+1.0f, +1.0f, -1.0f), Colors::Red},
@@ -67,7 +67,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_sta
 
     D3D11_BUFFER_DESC vbd = {};
     vbd.Usage = D3D11_USAGE_DYNAMIC;
-    vbd.ByteWidth = sizeof(Vertex) * vert_count;
+    vbd.ByteWidth = sizeof(ColorVertex) * vert_count;
     vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     D3D11_SUBRESOURCE_DATA vinit_data = {};
@@ -207,7 +207,7 @@ fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state, f32 dt) {
 
     rctx->device_context->RSSetState(picked_rs);
 
-    u32 stride = sizeof(Vertex);
+    u32 stride = sizeof(ColorVertex);
     u32 offset = 0;
     rctx->device_context->IASetVertexBuffers(0, 1, &demo_state->box_vb, &stride, &offset);
     rctx->device_context->IASetIndexBuffer(demo_state->box_ib, DXGI_FORMAT_R32_UINT, 0);
@@ -225,7 +225,7 @@ fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state, f32 dt) {
     D3D11_MAPPED_SUBRESOURCE mapped_resource = {};
 
     // create vertex buffer
-    Vertex new_vertices[] = {
+    ColorVertex new_vertices[] = {
             {XMFLOAT3(-1.0f, -1.0f, -1.0f), Colors::Black},
             {XMFLOAT3(-1.0f, +1.0f, -1.0f), Colors::Blue},
             {XMFLOAT3(+1.0f, +1.0f, -1.0f), Colors::Green},

@@ -150,7 +150,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
     // Extract the vertex elements we are interested in and pack the
     // vertices of all the meshes into one vertex buffer.
     //
-    std::vector<Vertex> vertices(totalVertexCount);
+    std::vector<ColorVertex> vertices(totalVertexCount);
     XMFLOAT4 black(0.0f, 0.0f, 0.0f, 1.0f);
     UINT k = 0;
     for (size_t i = 0; i < box.Vertices.size(); ++i, ++k) {
@@ -171,7 +171,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
     }
     D3D11_BUFFER_DESC vbd;
     vbd.Usage = D3D11_USAGE_IMMUTABLE;
-    vbd.ByteWidth = sizeof(Vertex) * totalVertexCount;
+    vbd.ByteWidth = sizeof(ColorVertex) * totalVertexCount;
     vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     vbd.CPUAccessFlags = 0;
     vbd.MiscFlags = 0;
@@ -208,7 +208,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
     // u32 obj_index_count;
 
     // for now i will just use the position
-    std::vector<Vertex> obj_vertices(skull_obj.positions.size());
+    std::vector<ColorVertex> obj_vertices(skull_obj.positions.size());
 
     for(u32 i = 0; i<skull_obj.positions.size(); ++i) {
         obj_vertices[i].Pos = skull_obj.positions[i];
@@ -217,7 +217,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_
 
     vbd = {};
     vbd.Usage = D3D11_USAGE_IMMUTABLE;
-    vbd.ByteWidth = sizeof(Vertex) * (u32)skull_obj.positions.size();
+    vbd.ByteWidth = sizeof(ColorVertex) * (u32)skull_obj.positions.size();
     vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     vbd.CPUAccessFlags = 0;
     vbd.MiscFlags = 0;
@@ -303,7 +303,7 @@ fn void demo_update_render(RenderContext *rctx, ShapesDemo *demo_state, f32 dt) 
     rctx->device_context->IASetPrimitiveTopology(
             D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     rctx->device_context->RSSetState(demo_state->mWireframeRS);
-    UINT stride = sizeof(Vertex);
+    UINT stride = sizeof(ColorVertex);
     UINT offset = 0;
     rctx->device_context->IASetVertexBuffers(0, 1, &demo_state->mVB, &stride, &offset);
     rctx->device_context->IASetIndexBuffer(demo_state->mIB, DXGI_FORMAT_R32_UINT, 0);

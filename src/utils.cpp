@@ -1,4 +1,3 @@
-
 #define HR(a) {HRESULT __hres = (a); assert(__hres == 0);}
 
 enum LucyResult {
@@ -21,6 +20,12 @@ struct Buf {
     void *buf;
     u64 size;
 };
+
+// lucy's assert
+// stops execution if false as if it is a debugger breakpoint
+fn void lassert() {
+
+}
 
 fn void log(const char *format, ...) {
     va_list argp;

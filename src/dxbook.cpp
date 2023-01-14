@@ -22,8 +22,6 @@
 #include "DirectXPackedVector.h"
 using namespace DirectX;
 
-#include <cassert>
-
 #include <vector>
 
 #define TITLE "lucydxcpp"
@@ -34,7 +32,7 @@ using namespace DirectX;
 // 0: Box Demo
 // 1: Hills Demo
 // 2: Shapes Demo
-#define DEMO_TO_RUN 2
+#define DEMO_TO_RUN 3
 
 #if DEMO_TO_RUN == 0
 #define DEMOSTRUCT BoxDemo
@@ -42,6 +40,8 @@ using namespace DirectX;
 #define DEMOSTRUCT HillsDemo
 #elif DEMO_TO_RUN == 2
 #define DEMOSTRUCT ShapesDemo
+#elif DEMO_TO_RUN == 3
+#define DEMOSTRUCT LightDemo
 #endif
 
 #include "lucytypes.cpp"
@@ -57,6 +57,7 @@ using namespace DirectX;
 #include "demo_box.cpp"
 #include "demo_hills.cpp"
 #include "demo_shapes.cpp"
+#include "demo_light.cpp"
 
 fn void OnMouseDown(WPARAM btnState, i32 x, i32 y, RenderContext *ctx) {
     ctx->last_mouse_pos.x = x;
@@ -363,7 +364,7 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
     hres = D3DX11CreateEffectFromMemory(
             basic_fx_buf.buf,
             basic_fx_buf.size,
-            0, out_render_ctx->device,
+            0, device,
             &basic_effect.effect);
     assert(hres == 0);
 
@@ -376,7 +377,7 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
 	basic_effect.WorldInvTranspose = basic_effect.effect->GetVariableByName("gWorldInvTranspose")->AsMatrix();
 	basic_effect.EyePosW           = basic_effect.effect->GetVariableByName("gEyePosW")->AsVector();
 	basic_effect.DirLights         = basic_effect.effect->GetVariableByName("gDirLights");
-	basic_effect.PointLight        = basic_effect.effect->GetVariableByName("gPointLight");
+	basic_effect.point_light        = basic_effect.effect->GetVariableByName("gPointLight");
 	basic_effect.Mat               = basic_effect.effect->GetVariableByName("gMaterial");
 
     out_render_ctx->basic_effect = basic_effect;
@@ -390,7 +391,7 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
     D3DX11_PASS_DESC pass_desc;
     basic_effect.Light1Tech->GetPassByIndex(0)->GetDesc(&pass_desc);
 
-    hres = out_render_ctx->device->CreateInputLayout(
+    hres = device->CreateInputLayout(
             inputElementDesc,
             arrsize(inputElementDesc),
             pass_desc.pIAInputSignature,
@@ -408,16 +409,9 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
     wireframeDesc.FrontCounterClockwise = false;
     wireframeDesc.DepthClipEnable = true;
 
-    HR(out_render_ctx->device->CreateRasterizerState(&wireframeDesc, &out_render_ctx->mWireframeRS));
+    HR(device->CreateRasterizerState(&wireframeDesc, &out_render_ctx->mWireframeRS));
     wireframeDesc.FillMode = D3D11_FILL_SOLID;
-    HR(out_render_ctx->device->CreateRasterizerState(&wireframeDesc, &out_render_ctx->mSolidRS));
-
-    // read when this assert hits:
-
-    // now u gotta create your own lit demo as specced in your notebook
-    // u gotta write the basic effect shader...
-    // a lot is already initeialized here
-    assert(false);
+    HR(device->CreateRasterizerState(&wireframeDesc, &out_render_ctx->mSolidRS));
 
     // INITIALIZING DX /END ------------------------
 
