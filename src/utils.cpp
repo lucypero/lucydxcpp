@@ -880,5 +880,14 @@ namespace imgui_help {
         ImGui::ColorEdit4(label, a);
         *val = XMFLOAT4(a);
     }
+
+    void float3_edit(const char *label, XMFLOAT3 *val) {
+        f32 a[3];
+        a[0] = val->x;
+        a[1] = val->y;
+        a[2] = val->z;
+        ImGui::InputFloat3(label, a);
+        *val = XMFLOAT3(a);
+    }
 }
 

@@ -37,11 +37,11 @@ struct LightDemo
 
 fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_state) {
 
-    rctx->cam_radius = 10.0f;
+    rctx->cam_radius = 7.0f;
 
     out_demo_state->disable_dir_2_light = true;
     out_demo_state->disable_dir_3_light = true;
-    out_demo_state->disable_point_light = true;
+    out_demo_state->disable_point_light = false;
 
     // initializing imgui stuff
     f32 clear_color[4] = { 0.4f, 0.4f, 0.4f, 1.0f };
@@ -81,7 +81,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
         .Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
         .Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
         // what is
-        .Position = XMFLOAT3(1.0f, 1.0f, 1.0f),
+        .Position = XMFLOAT3(1.5f, 1.5f, 1.5f),
         .Range = 100.0f,
 
         .Att = XMFLOAT3(1.0f, 1.0f, 1.0f),
@@ -164,53 +164,56 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
 // update and render (runs every frame)
 fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
 
+
     //imgui stuff here
     ImGui::Checkbox("wireframe mode", &demo_state->do_wireframe_rs);
     ImGui::ColorEdit4("clear color", demo_state->clear_color);
 
     // lights
-    ImGui::Checkbox("disable dir light 1", &demo_state->disable_dir_1_light);
-    ImGui::Checkbox("disable dir light 2", &demo_state->disable_dir_2_light);
-    ImGui::Checkbox("disable dir light 3", &demo_state->disable_dir_3_light);
-    ImGui::Checkbox("disable point light", &demo_state->disable_point_light);
+    if(ImGui::TreeNode("dir light 0")) {
+        ImGui::Checkbox("disable dir light 1", &demo_state->disable_dir_1_light);
+        imgui_help::float4_edit("dl0 ambient", &demo_state->dir_lights[0].Ambient);
+        imgui_help::float4_edit("dl0 diffuse", &demo_state->dir_lights[0].Diffuse);
+        imgui_help::float4_edit("dl0 specular", &demo_state->dir_lights[0].Specular);
+        imgui_help::float3_edit("dl0 direction", &demo_state->dir_lights[0].Direction);
+        ImGui::TreePop();
+    }
 
-    ImGui::LabelText("", "dir light 1 properties");
+    if(ImGui::TreeNode("dir light 1")) {
+        ImGui::Checkbox("disable dir light 2", &demo_state->disable_dir_2_light);
+        imgui_help::float4_edit("dl1 ambient", &demo_state->dir_lights[1].Ambient);
+        imgui_help::float4_edit("dl1 diffuse", &demo_state->dir_lights[1].Diffuse);
+        imgui_help::float4_edit("dl1 specular", &demo_state->dir_lights[1].Specular);
+        imgui_help::float3_edit("dl1 direction", &demo_state->dir_lights[1].Direction);
+        ImGui::TreePop();
+    }
 
-    f32 a[4];
-    a[0] = demo_state->dir_lights[0].Ambient.x;
-    a[1] = demo_state->dir_lights[0].Ambient.y;
-    a[2] = demo_state->dir_lights[0].Ambient.z;
-    a[3] = demo_state->dir_lights[0].Ambient.w;
-    ImGui::ColorEdit4("ambient", a);
-    demo_state->dir_lights[0].Ambient = XMFLOAT4(a);
+    if(ImGui::TreeNode("dir light 2")) {
+        ImGui::Checkbox("disable dir light 3", &demo_state->disable_dir_3_light);
+        imgui_help::float4_edit("dl2 ambient", &demo_state->dir_lights[2].Ambient);
+        imgui_help::float4_edit("dl2 diffuse", &demo_state->dir_lights[2].Diffuse);
+        imgui_help::float4_edit("dl2 specular", &demo_state->dir_lights[2].Specular);
+        imgui_help::float3_edit("dl2 direction", &demo_state->dir_lights[2].Direction);
+        ImGui::TreePop();
+    }
 
-    a[0] = demo_state->dir_lights[0].Diffuse.x;
-    a[1] = demo_state->dir_lights[0].Diffuse.y;
-    a[2] = demo_state->dir_lights[0].Diffuse.z;
-    a[3] = demo_state->dir_lights[0].Diffuse.w;
-    ImGui::ColorEdit4("diffuse", a);
-    demo_state->dir_lights[0].Diffuse = XMFLOAT4(a);
+    if(ImGui::TreeNode("point light")){
+        ImGui::Checkbox("disable point light", &demo_state->disable_point_light);
+        imgui_help::float4_edit("p ambient", &demo_state->point_light.Ambient);
+        imgui_help::float4_edit("p diffuse", &demo_state->point_light.Diffuse);
+        imgui_help::float4_edit("p specular", &demo_state->point_light.Specular);
+        imgui_help::float3_edit("p position", &demo_state->point_light.Position);
+        ImGui::InputFloat("p range", &demo_state->point_light.Range);
+        imgui_help::float3_edit("p att", &demo_state->point_light.Att);
+        ImGui::TreePop();
+    }
 
-    a[0] = demo_state->dir_lights[0].Specular.x;
-    a[1] = demo_state->dir_lights[0].Specular.y;
-    a[2] = demo_state->dir_lights[0].Specular.z;
-    a[3] = demo_state->dir_lights[0].Specular.w;
-    ImGui::ColorEdit4("specular", a);
-    demo_state->dir_lights[0].Specular = XMFLOAT4(a);
-
-    f32 dir[3];
-
-    dir[0] = demo_state->dir_lights[0].Direction.x;
-    dir[1] = demo_state->dir_lights[0].Direction.y;
-    dir[2] = demo_state->dir_lights[0].Direction.z;
-    ImGui::InputFloat3("Direction", dir);
-    demo_state->dir_lights[0].Direction = XMFLOAT3(dir);
-
-    ImGui::LabelText("", "material");
-
-    imgui_help::float4_edit("m ambient", &demo_state->obj_material.Ambient);
-    imgui_help::float4_edit("m diffuse", &demo_state->obj_material.Diffuse);
-    imgui_help::float4_edit("m specular", &demo_state->obj_material.Specular);
+    if(ImGui::TreeNode("material")) {
+        imgui_help::float4_edit("m ambient", &demo_state->obj_material.Ambient);
+        imgui_help::float4_edit("m diffuse", &demo_state->obj_material.Diffuse);
+        imgui_help::float4_edit("m specular", &demo_state->obj_material.Specular);
+        ImGui::TreePop();
+    }
 
     // imgui related things
     ID3D11RasterizerState *rs;
