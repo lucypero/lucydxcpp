@@ -20,6 +20,7 @@ struct PointLight
     float Range;
 
     float3 Att;
+	float pad;
 };
 
 struct SpotLight
@@ -64,6 +65,7 @@ void ComputeDirectionalLight(Material mat, DirectionalLight L,
 
     // the light vector aims opposite the direction the light rays travel.
     float3 lightVec = -L.Direction;
+	lightVec = normalize(lightVec);
 
     // add ambient term.
     ambient = mat.Ambient * L.Ambient;

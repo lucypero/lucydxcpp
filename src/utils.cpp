@@ -869,3 +869,16 @@ fn LucyResult load_obj(Arena *arena, const char *file_path, ObjFile *out) {
     return LRES_OK;
 }
 
+
+namespace imgui_help {
+    void float4_edit(const char *label, XMFLOAT4 *val) {
+        f32 a[4];
+        a[0] = val->x;
+        a[1] = val->y;
+        a[2] = val->z;
+        a[3] = val->w;
+        ImGui::ColorEdit4(label, a);
+        *val = XMFLOAT4(a);
+    }
+}
+
