@@ -49,7 +49,8 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
 
     // loading obj
     ObjFile the_obj = {};
-    LucyResult res = load_obj(arena, "Models\\skull\\skull.obj", &the_obj);
+    // LucyResult res = load_obj(arena, "Models\\skull\\skull.obj", &the_obj);
+    LucyResult res = load_obj(arena, "Models\\mill\\my_mill.obj", &the_obj);
     // LucyResult res = load_obj(arena, "Models\\cube.obj", &the_obj);
     assert(res == LRES_OK);
 

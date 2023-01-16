@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <windows.h>
 #include <string>
+#include <unordered_map>
 
 
 // libraries
@@ -52,6 +53,7 @@ using namespace DirectX;
 // project source files
 #include "math.cpp"
 #include "utils.cpp"
+#include "obj_loader.cpp"
 #include "exercises.cpp"
 
 #include "demo_box.cpp"

@@ -1,12 +1,18 @@
-
 NOTES:
 
+- i am adding features to the obj loader. it has to load materials too.
+- associate each face with a material.
+- you'll have to also load and parse the mtl
 
-where i am:
 
-- i am writing the lighting demo.
-- looks bad. 
-- maybe i am not setting the vertices well, from the obj
-- just add imgui controls for everything, it will help debugging anyway.
 
+load mtl
+have a hashmap from string to material
+fill the hashmap with all the materials, string as key
+
+if 'mtllib jifjoi.mtl'
+    load mtl
+
+if 'usemtl blabla'
+set current mt to blabla
 
