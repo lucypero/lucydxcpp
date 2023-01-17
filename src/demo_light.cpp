@@ -39,7 +39,6 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
 
     rctx->cam_radius = 7.0f;
 
-    out_demo_state->disable_dir_2_light = true;
     out_demo_state->disable_dir_3_light = true;
     out_demo_state->disable_point_light = false;
 
@@ -74,6 +73,9 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
    };
 
     out_demo_state->dir_lights[0] = dir_light;
+
+    dir_light.Direction.x = -1.0f;
+
     out_demo_state->dir_lights[1] = dir_light;
     out_demo_state->dir_lights[2] = dir_light;
 
@@ -213,6 +215,7 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
         imgui_help::float4_edit("m ambient", &demo_state->obj_material.Ambient);
         imgui_help::float4_edit("m diffuse", &demo_state->obj_material.Diffuse);
         imgui_help::float4_edit("m specular", &demo_state->obj_material.Specular);
+        ImGui::InputFloat("m shininess", &demo_state->obj_material.Specular.w);
         ImGui::TreePop();
     }
 

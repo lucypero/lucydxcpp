@@ -737,6 +737,7 @@ namespace imgui_help {
         a[2] = val->z;
         a[3] = val->w;
         ImGui::ColorEdit4(label, a);
+
         *val = XMFLOAT4(a);
     }
 
