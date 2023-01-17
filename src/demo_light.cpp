@@ -49,8 +49,8 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
 
     // loading obj
     ObjFile the_obj = {};
-    // LucyResult res = load_obj(arena, "Models\\skull\\skull.obj", &the_obj);
-    LucyResult res = load_obj(arena, "Models\\mill\\my_mill.obj", &the_obj);
+    LucyResult res = load_obj(arena, "Models\\skull\\skull.obj", &the_obj);
+    // LucyResult res = load_obj(arena, "Models\\mill\\my_mill.obj", &the_obj);
     // LucyResult res = load_obj(arena, "Models\\cube.obj", &the_obj);
     assert(res == LRES_OK);
 
@@ -290,9 +290,12 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
 
 	rctx->basic_effect.SetEyePosW(demo_state->mEyePosW);
 
-    D3DX11_TECHNIQUE_DESC techDesc;
     // todo did u initialize all the techs?? i not sure if it does that by default
-    rctx->basic_effect.Light3Tech->GetDesc(&techDesc);
+
+    // the tech we will use
+    auto tech = rctx->basic_effect.Light3Tech;
+    D3DX11_TECHNIQUE_DESC techDesc;
+    tech->GetDesc(&techDesc);
 
     // this should only be 1 pass so don't get scared by this loop
     for (u32 p = 0; p < techDesc.Passes; ++p) {
@@ -308,7 +311,7 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
 		rctx->basic_effect.SetMaterial(&demo_state->obj_material);
 
         // apply
-        rctx->basic_effect.Light3Tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+       tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
 
         //draw
         // rctx->device_context->DrawIndexed(demo_state->obj_index_count, 0, 0);
