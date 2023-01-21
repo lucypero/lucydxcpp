@@ -1,18 +1,17 @@
 NOTES:
 
+- finish obj loader
+- change interface for positioning lights.
+    - give it an angle and distance. much better. it'll be rotated around the center
+
+- add textures
+
+---------- OBJ LOADER THING --------------
+
 - i am adding features to the obj loader. it has to load materials too.
 - associate each face with a material.
 - you'll have to also load and parse the mtl
 
-
-
 load mtl
 have a hashmap from string to material
 fill the hashmap with all the materials, string as key
-
-if 'mtllib jifjoi.mtl'
-    load mtl
-
-if 'usemtl blabla'
-set current mt to blabla
-

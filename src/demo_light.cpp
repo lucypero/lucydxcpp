@@ -28,9 +28,7 @@ struct LightDemo
     bool do_wireframe_rs;
     f32 clear_color[4];
 
-    bool disable_dir_1_light;
-    bool disable_dir_2_light;
-    bool disable_dir_3_light;
+    i32 how_many_lights;
 
     bool disable_point_light;
 };
@@ -39,7 +37,8 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
 
     rctx->cam_radius = 7.0f;
 
-    out_demo_state->disable_dir_3_light = true;
+    out_demo_state->how_many_lights = 1;
+
     out_demo_state->disable_point_light = false;
 
     // initializing imgui stuff
@@ -57,7 +56,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
     out_demo_state->obj_material = {
         .Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.1f),
         .Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-        .Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+        .Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 32.0f),
         // what is this
         .Reflect = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
     };
@@ -171,33 +170,29 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
     //imgui stuff here
     ImGui::Checkbox("wireframe mode", &demo_state->do_wireframe_rs);
     ImGui::ColorEdit4("clear color", demo_state->clear_color);
+    ImGui::DragInt("how many lights", &demo_state->how_many_lights, 0.05f, 1, 3);
 
-    // lights
-    if(ImGui::TreeNode("dir light 0")) {
-        ImGui::Checkbox("disable dir light 1", &demo_state->disable_dir_1_light);
-        imgui_help::float4_edit("dl0 ambient", &demo_state->dir_lights[0].Ambient);
-        imgui_help::float4_edit("dl0 diffuse", &demo_state->dir_lights[0].Diffuse);
-        imgui_help::float4_edit("dl0 specular", &demo_state->dir_lights[0].Specular);
-        imgui_help::float3_edit("dl0 direction", &demo_state->dir_lights[0].Direction);
-        ImGui::TreePop();
-    }
+    for(i32 i = 0; i< demo_state->how_many_lights; ++i) {
 
-    if(ImGui::TreeNode("dir light 1")) {
-        ImGui::Checkbox("disable dir light 2", &demo_state->disable_dir_2_light);
-        imgui_help::float4_edit("dl1 ambient", &demo_state->dir_lights[1].Ambient);
-        imgui_help::float4_edit("dl1 diffuse", &demo_state->dir_lights[1].Diffuse);
-        imgui_help::float4_edit("dl1 specular", &demo_state->dir_lights[1].Specular);
-        imgui_help::float3_edit("dl1 direction", &demo_state->dir_lights[1].Direction);
-        ImGui::TreePop();
-    }
+        std::string tree_label{"dir light "};
+        tree_label += std::to_string(i);
 
-    if(ImGui::TreeNode("dir light 2")) {
-        ImGui::Checkbox("disable dir light 3", &demo_state->disable_dir_3_light);
-        imgui_help::float4_edit("dl2 ambient", &demo_state->dir_lights[2].Ambient);
-        imgui_help::float4_edit("dl2 diffuse", &demo_state->dir_lights[2].Diffuse);
-        imgui_help::float4_edit("dl2 specular", &demo_state->dir_lights[2].Specular);
-        imgui_help::float3_edit("dl2 direction", &demo_state->dir_lights[2].Direction);
-        ImGui::TreePop();
+        std::string number{"dl"};
+        number += std::to_string(i);
+        number += " ";
+
+        if(ImGui::TreeNode(tree_label.c_str())) {
+            std::string tmp;
+            tmp = number + "ambient";
+            imgui_help::float4_edit(tmp.c_str(), &demo_state->dir_lights[i].Ambient);
+            tmp = number + "diffuse";
+            imgui_help::float4_edit(tmp.c_str(), &demo_state->dir_lights[i].Diffuse);
+            tmp = number + "specular";
+            imgui_help::float4_edit(tmp.c_str(), &demo_state->dir_lights[i].Specular);
+            tmp = number + "direction";
+            imgui_help::float3_edit(tmp.c_str(), &demo_state->dir_lights[i].Direction);
+            ImGui::TreePop();
+        }
     }
 
     if(ImGui::TreeNode("point light")){
@@ -231,16 +226,6 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
 
     DirectionalLight dir_lights[3];
     memcpy(dir_lights, demo_state->dir_lights, sizeof(DirectionalLight) * 3);
-
-    if(demo_state->disable_dir_1_light) {
-        dir_lights[0] = {};
-    }
-    if(demo_state->disable_dir_2_light) {
-        dir_lights[1] = {};
-    }
-    if(demo_state->disable_dir_3_light) {
-        dir_lights[2] = {};
-    }
 
     PointLight point_light = demo_state->point_light;
     if(demo_state->disable_point_light) {
@@ -281,7 +266,6 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
     rctx->device_context->IASetVertexBuffers(0, 1, &demo_state->vb, &stride, &offset);
     rctx->device_context->IASetIndexBuffer(demo_state->ib, DXGI_FORMAT_R32_UINT, 0);
 
-
 	XMMATRIX view  = XMLoadFloat4x4(&demo_state->mView);
 	XMMATRIX proj  = XMLoadFloat4x4(&demo_state->mProj);
 	XMMATRIX viewProj = view*proj;
@@ -296,7 +280,17 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
     // todo did u initialize all the techs?? i not sure if it does that by default
 
     // the tech we will use
-    auto tech = rctx->basic_effect.Light3Tech;
+
+    auto tech = rctx->basic_effect.Light1Tech;
+    switch(demo_state->how_many_lights) {
+        case 2:
+            tech = rctx->basic_effect.Light2Tech;
+            break;
+        case 3:
+            tech = rctx->basic_effect.Light3Tech;
+            break;
+    }
+
     D3DX11_TECHNIQUE_DESC techDesc;
     tech->GetDesc(&techDesc);
 
@@ -322,6 +316,4 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
         // we will not use indexed drwaing bc i still don't know how to parsse obj's.
         rctx->device_context->Draw(demo_state->obj_vertex_count, 0);
     }
-
-
 }
