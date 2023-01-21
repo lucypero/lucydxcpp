@@ -3,6 +3,8 @@ NOTES:
 - finish obj loader
 - change interface for positioning lights.
     - give it an angle and distance. much better. it'll be rotated around the center
+- try tooning shader, it's in the lighting exercises
+- look up how anisotropic filtering works
 
 - add textures
 

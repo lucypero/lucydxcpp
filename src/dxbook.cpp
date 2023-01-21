@@ -358,7 +358,8 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
 
     Buf basic_fx_buf;
     LucyResult lres; 
-    lres = read_whole_file(arena, "build\\basic.fxo", &basic_fx_buf);
+    // lres = read_whole_file(arena, "build\\basic.fxo", &basic_fx_buf);
+    lres = read_whole_file(arena, "build\\toon.fxo", &basic_fx_buf);
 
     if(lres != LRES_OK)
         return lres;

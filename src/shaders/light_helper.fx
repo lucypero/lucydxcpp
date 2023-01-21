@@ -47,6 +47,25 @@ struct Material
     float4 Reflect;
 };
 
+void Toonify(inout float diffuseFactor, inout float specFactor) {
+    if (diffuseFactor <= 0.1f) {
+        diffuseFactor = 0.0f;
+    }
+    else if(diffuseFactor <= 0.5f) {
+        diffuseFactor = 0.4f;
+    } else {
+        diffuseFactor = 1.0f;
+    }
+
+    if(specFactor <= 0.1f) {
+        specFactor = 0.0f;
+    } else if (specFactor <= 0.8f){
+        specFactor = 0.5f;
+    } else {
+        specFactor = 0.8f;
+    }
+}
+
 //---------------------------------------------------------------------------------------
 // Computes the ambient, diffuse, and specular terms in the lighting equation
 // from a directional light.  We need to output the terms separately because
@@ -176,4 +195,82 @@ void ComputeSpotLight(Material mat, SpotLight L, float3 pos, float3 normal, floa
     ambient *= spot;
     diffuse *= att;
     spec    *= att;
+}
+
+
+//---------------------------------------------------------------------------------------
+// Computes the ambient, diffuse, and specular terms in the lighting equation
+// from a directional light.  We need to output the terms separately because
+// later we will modify the individual terms.
+//---------------------------------------------------------------------------------------
+void ComputeToonDirectionalLight(Material mat, DirectionalLight L,
+                              float3 normal, float3 toEye,
+                              out float4 ambient,
+                              out float4 diffuse,
+                              out float4 spec)
+{
+    ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+    float3 lightVec = -L.Direction;
+    lightVec = normalize(lightVec);
+
+    ambient = mat.Ambient * L.Ambient;
+
+    float diffuseFactor = max(dot(lightVec, normal), 0.0f);
+
+    float3 halfwayDir = normalize(lightVec + toEye);
+    float specFactor = pow(max(dot(normal, halfwayDir), 0.0f), mat.Specular.w);
+
+    Toonify(diffuseFactor, specFactor);
+
+    diffuse = diffuseFactor * mat.Diffuse * L.Diffuse;
+    spec = specFactor * mat.Specular * L.Specular;
+
+    if (diffuseFactor == 0.0f)
+        spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+//---------------------------------------------------------------------------------------
+// Computes the ambient, diffuse, and specular terms in the lighting equation
+// from a point light.  We need to output the terms separately because
+// later we will modify the individual terms.
+//---------------------------------------------------------------------------------------
+void ComputeToonPointLight(Material mat, PointLight L, float3 pos, float3 normal, float3 toEye,
+                   out float4 ambient, out float4 diffuse, out float4 spec)
+{
+    ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+    float3 lightVec = L.Position - pos;
+    lightVec = normalize(lightVec);
+        
+    float d = length(lightVec);
+    
+    if( d > L.Range )
+        return;
+        
+    lightVec /= d; 
+    
+    ambient = mat.Ambient * L.Ambient;	
+
+    float diffuseFactor = max(dot(lightVec, normal), 0.0f);
+
+    float3 halfwayDir = normalize(lightVec + toEye);
+    float specFactor = pow(max(dot(normal, halfwayDir), 0.0f), mat.Specular.w);
+
+    Toonify(diffuseFactor, specFactor);
+                
+    diffuse = diffuseFactor * mat.Diffuse * L.Diffuse;
+    spec    = specFactor * mat.Specular * L.Specular;
+
+    float att = 1.0f / dot(L.Att, float3(1.0f, d, d*d));
+
+    diffuse *= att;
+    spec    *= att;
+
+    if (diffuseFactor == 0.0f)
+        spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
 }
