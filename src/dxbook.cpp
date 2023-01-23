@@ -61,6 +61,17 @@ using namespace DirectX;
 #include "demo_shapes.cpp"
 #include "demo_light.cpp"
 
+
+fn void OnMouseWheel(WPARAM w_delta, RenderContext *rctx) {
+    i32 delta = (i32)w_delta;
+
+    rctx->mouse_wheel_delta = delta;
+
+    // negative is scrolling towards user
+    rctx->cam_radius -= (f32)delta * 0.01f;
+    rctx->cam_radius = math::clamp(rctx->cam_radius, 3.0f, 200.0f);
+}
+
 fn void OnMouseDown(WPARAM btnState, i32 x, i32 y, RenderContext *ctx) {
     ctx->last_mouse_pos.x = x;
     ctx->last_mouse_pos.y = y;
@@ -172,6 +183,9 @@ fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
             case WM_MOUSEMOVE:
                 OnMouseMove(wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam), rctx);
                 return 0;
+            case WM_MOUSEWHEEL:
+                OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wparam), rctx);
+                break;
 
             default:
                 result = DefWindowProcA(hwnd, msg, wparam, lparam);
@@ -358,8 +372,8 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
 
     Buf basic_fx_buf;
     LucyResult lres; 
-    // lres = read_whole_file(arena, "build\\basic.fxo", &basic_fx_buf);
-    lres = read_whole_file(arena, "build\\toon.fxo", &basic_fx_buf);
+    lres = read_whole_file(arena, "build\\basic.fxo", &basic_fx_buf);
+    // lres = read_whole_file(arena, "build\\toon.fxo", &basic_fx_buf);
 
     if(lres != LRES_OK)
         return lres;

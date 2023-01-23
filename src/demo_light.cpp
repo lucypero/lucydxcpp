@@ -28,6 +28,11 @@ struct LightDemo
     bool do_wireframe_rs;
     f32 clear_color[4];
 
+    f32 light_x_angle[4];
+    f32 light_y_angle[4];
+
+    f32 point_light_distance;
+
     i32 how_many_lights;
 
     bool disable_point_light;
@@ -36,6 +41,7 @@ struct LightDemo
 fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_state) {
 
     rctx->cam_radius = 7.0f;
+    out_demo_state->point_light_distance = 20.0f;
 
     out_demo_state->how_many_lights = 1;
 
@@ -189,8 +195,18 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
             imgui_help::float4_edit(tmp.c_str(), &demo_state->dir_lights[i].Diffuse);
             tmp = number + "specular";
             imgui_help::float4_edit(tmp.c_str(), &demo_state->dir_lights[i].Specular);
-            tmp = number + "direction";
-            imgui_help::float3_edit(tmp.c_str(), &demo_state->dir_lights[i].Direction);
+
+            // direction
+            tmp = number + "light x angle (rad * pi)";
+            ImGui::DragFloat(tmp.c_str(), &demo_state->light_x_angle[i], 0.01f, -2.0f, 2.0f);
+            tmp = number + "light y angle (rad * pi)";
+            ImGui::DragFloat(tmp.c_str(), &demo_state->light_y_angle[i], 0.01f, -2.0f, 2.0f);
+            XMMATRIX light_rot = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(demo_state->light_y_angle[i] * math::PI, demo_state->light_x_angle[i] * math::PI, 0.0f));
+            f32 light_distance = -1.0f;
+            XMVECTOR light_pos = XMVectorSet(0.0f, 0.0f, light_distance, 1.0f);
+            light_pos = XMVector3Transform(light_pos, light_rot);
+            XMStoreFloat3(&demo_state->dir_lights[i].Direction, light_pos);
+
             ImGui::TreePop();
         }
     }
@@ -200,7 +216,18 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
         imgui_help::float4_edit("p ambient", &demo_state->point_light.Ambient);
         imgui_help::float4_edit("p diffuse", &demo_state->point_light.Diffuse);
         imgui_help::float4_edit("p specular", &demo_state->point_light.Specular);
-        imgui_help::float3_edit("p position", &demo_state->point_light.Position);
+
+        ImGui::DragFloat("p x angle", &demo_state->light_x_angle[3], 0.01f, -2.0f, 2.0f);
+        ImGui::DragFloat("p y angle", &demo_state->light_y_angle[3], 0.01f, -2.0f, 2.0f);
+        ImGui::DragFloat("p distance", &demo_state->point_light_distance, 0.02f, 2.0f, 100.0f);
+
+        // imgui_help::float3_edit("p position", &demo_state->point_light.Position);
+        XMMATRIX light_rot = XMMatrixRotationQuaternion(XMQuaternionRotationRollPitchYaw(demo_state->light_y_angle[3] * math::PI, demo_state->light_x_angle[3] * math::PI, 0.0f));
+        f32 light_distance = -demo_state->point_light_distance;
+        XMVECTOR light_pos = XMVectorSet(0.0f, 0.0f, light_distance, 1.0f);
+        light_pos = XMVector3Transform(light_pos, light_rot);
+        XMStoreFloat3(&demo_state->point_light.Position, light_pos);
+
         ImGui::InputFloat("p range", &demo_state->point_light.Range);
         imgui_help::float3_edit("p att", &demo_state->point_light.Att);
         ImGui::TreePop();

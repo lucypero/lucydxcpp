@@ -123,6 +123,8 @@ struct RenderContext {
     // rasterizer states
     ID3D11RasterizerState *mWireframeRS; // wireframe
     ID3D11RasterizerState *mSolidRS; // solid
+
+	i32 mouse_wheel_delta;
 };
 
 namespace Colors {
