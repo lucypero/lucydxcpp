@@ -15,11 +15,11 @@ set compiler_flags=/W3 /WX /EHsc /FC
 if %debug% (
     echo Debug mode...
     set compiler_flags=%compiler_flags% /Zi /DDEBUG /MDd
-    set linker_flags=Effects11d.lib imguid.obj
+    set linker_flags=Effects11d.lib imguid.obj DirectXTKd.lib
 ) else (
     echo Release mode...
     set compiler_flags=%compiler_flags% /O2 /MD
-    set linker_flags=Effects11.lib imgui.obj
+    set linker_flags=Effects11.lib imgui.obj DirectXTK.lib
 )
 
 

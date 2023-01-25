@@ -30,17 +30,30 @@ cbuffer cbPerObject
     float4x4 gWorld;
     float4x4 gWorldInvTranspose;
     float4x4 gWorldViewProj;
-    // float4x4 gTexTransform; // no textures yet
+    float4x4 gTexTransform; 
     Material gMaterial;
 };
 
+Texture2D gDiffuseMap;
+Texture2D gSpecularMap;
 
-// todo: add texture stuff here
+// todo add sampler or smth idk
+//  i don't wanna define it here, create it in cpp
+
+SamplerState samAnisotropic
+{
+    Filter = ANISOTROPIC;
+    MaxAnisotropy = 4;
+    AddressU = WRAP;
+    AddressV = WRAP;
+};
+
 
 struct VertexIn
 {
     float3 PosL : POSITION;
     float3 NormalL : NORMAL;
+    float2 Tex : TEXCOORD;
 };
 
 struct VertexOut
@@ -48,6 +61,7 @@ struct VertexOut
     float4 PosH : SV_POSITION;
     float3 PosW : POSITION;
     float3 NormalW : NORMAL;
+    float2 Tex : TEXCOORD;
 };
 
 VertexOut VS(VertexIn vin)
@@ -60,6 +74,9 @@ VertexOut VS(VertexIn vin)
     
     // Transform to homogeneous clip space.
     vout.PosH = mul(float4(vin.PosL, 1.0f), gWorldViewProj);
+
+    // passing uv's after transforming them w the tex transform
+    vout.Tex = mul(float4(vin.Tex, 0.0f, 1.0f), gTexTransform).xy;
 
     return vout;
 }
@@ -77,6 +94,15 @@ float4 PS(VertexOut pin, uniform int gLightCount) : SV_Target
 
     // Normalize.
     toEye /= distToEye;
+
+    //
+    // Texture
+    //
+
+    // float4 texColor = float4(1, 1, 1, 1);
+    // sample texture
+    float4 texColor = gDiffuseMap.Sample(samAnisotropic, pin.Tex);
+    float4 texSpecular = gSpecularMap.Sample(samAnisotropic, pin.Tex);
 
     //
     // Lighting.
@@ -107,10 +133,10 @@ float4 PS(VertexOut pin, uniform int gLightCount) : SV_Target
     diffuse += D;
     spec += S;
 
-    float4 litColor = ambient + diffuse + spec;
+    float4 litColor = texColor * (ambient + diffuse) + texSpecular * spec;
 
     // Common to take alpha from diffuse material.
-    litColor.a = gMaterial.Diffuse.a;
+    litColor.a = gMaterial.Diffuse.a * texColor.a;
 
     return litColor;
 }

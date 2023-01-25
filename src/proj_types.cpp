@@ -11,6 +11,7 @@ struct ColorVertex {
 struct Vertex {
     XMFLOAT3 Pos;
     XMFLOAT3 Normal;
+    XMFLOAT2 Tex;
 };
 
 // shader and lighting structs
@@ -71,6 +72,7 @@ struct Material
 };
 
 // dx effect (3 dir lights, one point light)
+// one texture
 struct BasicEffect {
 
     ID3DX11Effect *effect;
@@ -80,26 +82,32 @@ struct BasicEffect {
 	ID3DX11EffectTechnique* Light2Tech;
 	ID3DX11EffectTechnique* Light3Tech;
 
-	ID3DX11EffectMatrixVariable* WorldViewProj;
-	ID3DX11EffectMatrixVariable* World;
-	ID3DX11EffectMatrixVariable* WorldInvTranspose;
+	// cb per frame
 	ID3DX11EffectVectorVariable* EyePosW;
-
-    // the 3 dir lights
 	ID3DX11EffectVariable* DirLights;
-
-    // 1 point light
 	ID3DX11EffectVariable* point_light;
 
+	// cb per object
+	ID3DX11EffectMatrixVariable* World;
+	ID3DX11EffectMatrixVariable* WorldInvTranspose;
+	ID3DX11EffectMatrixVariable* WorldViewProj;
 	ID3DX11EffectVariable* Mat;
+	ID3DX11EffectMatrixVariable* TexTransform;
+
+	// texture
+	ID3DX11EffectShaderResourceVariable *texture;
+	ID3DX11EffectShaderResourceVariable *texture_specular;
 
 	void SetWorldViewProj(CXMMATRIX M)                  { WorldViewProj->SetMatrix(reinterpret_cast<const float*>(&M)); }
 	void SetWorld(CXMMATRIX M)                          { World->SetMatrix(reinterpret_cast<const float*>(&M)); }
 	void SetWorldInvTranspose(CXMMATRIX M)              { WorldInvTranspose->SetMatrix(reinterpret_cast<const float*>(&M)); }
+	void SetTexTransform(CXMMATRIX M)              		{ TexTransform->SetMatrix(reinterpret_cast<const float*>(&M)); }
 	void SetEyePosW(const XMFLOAT3& v)                  { EyePosW->SetRawValue(&v, 0, sizeof(XMFLOAT3)); }
 	void SetDirLights(const DirectionalLight *lights)   { DirLights->SetRawValue(lights, 0, 3*sizeof(DirectionalLight)); }
 	void SetPointLight(const PointLight *light)         { point_light->SetRawValue(light, 0, sizeof(PointLight)); }
 	void SetMaterial(const Material *mat)               { Mat->SetRawValue(mat, 0, sizeof(Material)); }
+	void SetTexture(ID3D11ShaderResourceView *tex)      { texture->SetResource(tex);}
+	void SetTextureSpecular(ID3D11ShaderResourceView *tex)      { texture_specular->SetResource(tex);}
 };
 
 struct RenderContext {
@@ -118,7 +126,11 @@ struct RenderContext {
     BasicEffect basic_effect;
 
     // input layouts
-    ID3D11InputLayout *il_pos_normal; //POS and NORMAL
+    ID3D11InputLayout *il_pos_normal_uv; //POS and NORMAL and UVs
+
+	// textures
+	ID3D11ShaderResourceView *srv_diffuse;
+	ID3D11ShaderResourceView *srv_specular;
 
     // rasterizer states
     ID3D11RasterizerState *mWireframeRS; // wireframe

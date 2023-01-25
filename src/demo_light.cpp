@@ -31,6 +31,8 @@ struct LightDemo
     f32 light_x_angle[4];
     f32 light_y_angle[4];
 
+    f32 uv_scale;
+
     f32 point_light_distance;
 
     i32 how_many_lights;
@@ -41,7 +43,9 @@ struct LightDemo
 fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_state) {
 
     rctx->cam_radius = 7.0f;
+
     out_demo_state->point_light_distance = 20.0f;
+    out_demo_state->uv_scale = 1.0f;
 
     out_demo_state->how_many_lights = 1;
 
@@ -54,6 +58,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
     // loading obj
     ObjFile the_obj = {};
     LucyResult res = load_obj(arena, "Models\\skull\\skull.obj", &the_obj);
+    // LucyResult res = load_obj(arena, "Models\\plane.obj", &the_obj);
     // LucyResult res = load_obj(arena, "Models\\mill\\my_mill.obj", &the_obj);
     // LucyResult res = load_obj(arena, "Models\\cube.obj", &the_obj);
     assert(res == LRES_OK);
@@ -101,7 +106,6 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
     std::vector<Vertex> obj_vertices(the_obj.position_indices.size());
     std::vector<u32> obj_indices(the_obj.position_indices.size());
 
-
     // for(u32 i = 0; i<the_obj.positions.size(); ++i) {
     //     obj_vertices[i].Pos = the_obj.positions[i];
     //     // obj_vertices[i].Color = black;
@@ -110,7 +114,9 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
     for(u32 i = 0; i<the_obj.position_indices.size(); ++i) {
         assert(the_obj.position_indices[i] >= 0);
         assert(the_obj.normal_indices[i] >= 0);
+        assert(the_obj.uv_indices[i] >= 0);
         assert(the_obj.normal_indices.size() == the_obj.position_indices.size());
+        assert(the_obj.uv_indices.size() == the_obj.position_indices.size());
 
         // get pos, get normal, then make vertex and push
 
@@ -118,6 +124,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
 
         obj_vertices[i].Pos = the_obj.positions[the_obj.position_indices[i] - 1];
         obj_vertices[i].Normal = the_obj.normals[the_obj.normal_indices[i] - 1];
+        obj_vertices[i].Tex = the_obj.uvs[the_obj.uv_indices[i] - 1];
 
         // log("vertex %i pos %f %f %f", obj_indices[i], obj_vertices[obj_indices[i]].Pos.x, obj_vertices[obj_indices[i]].Pos.y, obj_vertices[obj_indices[i]].Pos.z);
         // log("vertex %i normal %f %f %f", obj_indices[i], obj_vertices[obj_indices[i]].Normal.x, obj_vertices[obj_indices[i]].Normal.y, obj_vertices[obj_indices[i]].Normal.z);
@@ -156,7 +163,6 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
 
 
     // transform the obj here
-	// XMMATRIX I = XMMatrixIdentity();
 
 	XMMATRIX obj_scale = XMMatrixScaling(1.0f, 1.0f, 1.0f);
     XMMATRIX obj_rot = XMMatrixRotationX(0.0f);
@@ -165,6 +171,9 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
 
     out_demo_state->mView = {};
     out_demo_state->mEyePosW = {};
+
+    // initting texture stuff
+
 
     return LRES_OK;
 }
@@ -241,6 +250,9 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
         ImGui::TreePop();
     }
 
+
+    ImGui::InputFloat("uv scale", &demo_state->uv_scale);
+
     // imgui related things
     ID3D11RasterizerState *rs;
     if(demo_state->do_wireframe_rs) {
@@ -282,7 +294,7 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
                                                 D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     // setting renderer state
-    rctx->device_context->IASetInputLayout(rctx->il_pos_normal);
+    rctx->device_context->IASetInputLayout(rctx->il_pos_normal_uv);
     rctx->device_context->IASetPrimitiveTopology(
             D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -334,8 +346,16 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
 		rctx->basic_effect.SetWorldViewProj(worldViewProj);
 		rctx->basic_effect.SetMaterial(&demo_state->obj_material);
 
+        // texture stuff
+	    // XMMATRIX I = XMMatrixIdentity();
+        f32 s = demo_state->uv_scale;
+	    XMMATRIX obj_scale = XMMatrixScaling(s, s, s);
+        rctx->basic_effect.SetTexTransform(obj_scale);
+        rctx->basic_effect.SetTexture(rctx->srv_diffuse);
+        rctx->basic_effect.SetTextureSpecular(rctx->srv_specular);
+
         // apply
-       tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+        tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
 
         //draw
         // rctx->device_context->DrawIndexed(demo_state->obj_index_count, 0, 0);

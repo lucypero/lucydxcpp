@@ -11,7 +11,7 @@ struct ObjParser {
 struct ObjFile {
     std::vector<XMFLOAT3> positions;
     std::vector<XMFLOAT3> normals;
-    std::vector<XMFLOAT3> uvs;
+    std::vector<XMFLOAT2> uvs;
     std::vector<i64> position_indices;
     std::vector<i64> normal_indices;
     std::vector<i64> uv_indices;
@@ -126,7 +126,7 @@ fn bool parse_line(Arena *arena, ObjParser *parser, Buf *file, ObjFile *obj) {
         f32 pos_1, pos_2;
         read = sscanf_s(line, "%f %f", &pos_1, &pos_2);
         assert(read == 2);
-        obj->uvs.push_back(XMFLOAT3(pos_1, pos_2, 0.0f));
+        obj->uvs.push_back(XMFLOAT2(pos_1, pos_2));
     } else if (op_name == "f") {
         // parsing faces
         i32 p_1, p_2, p_3, n_1, n_2, n_3, u_1, u_2, u_3;

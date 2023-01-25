@@ -15,6 +15,8 @@
 
 // libraries
 #include "Effects11\d3dx11effect.h"
+#include "DirectXTK\DDSTextureLoader.h"
+#include "DirectXTK\WICTextureLoader.h"
 #include "imgui\imgui.h"
 #include "imgui\backends\imgui_impl_win32.h"
 #include "imgui\backends\imgui_impl_dx11.h"
@@ -394,8 +396,11 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
 	basic_effect.WorldInvTranspose = basic_effect.effect->GetVariableByName("gWorldInvTranspose")->AsMatrix();
 	basic_effect.EyePosW           = basic_effect.effect->GetVariableByName("gEyePosW")->AsVector();
 	basic_effect.DirLights         = basic_effect.effect->GetVariableByName("gDirLights");
-	basic_effect.point_light        = basic_effect.effect->GetVariableByName("gPointLight");
+	basic_effect.point_light       = basic_effect.effect->GetVariableByName("gPointLight");
 	basic_effect.Mat               = basic_effect.effect->GetVariableByName("gMaterial");
+	basic_effect.TexTransform      = basic_effect.effect->GetVariableByName("gTexTransform")->AsMatrix();
+	basic_effect.texture           = basic_effect.effect->GetVariableByName("gDiffuseMap")->AsShaderResource();
+	basic_effect.texture_specular  = basic_effect.effect->GetVariableByName("gSpecularMap")->AsShaderResource();
 
     out_render_ctx->basic_effect = basic_effect;
 
@@ -403,6 +408,7 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
     D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
             {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
     };
 
     D3DX11_PASS_DESC pass_desc;
@@ -413,10 +419,25 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
             arrsize(inputElementDesc),
             pass_desc.pIAInputSignature,
             pass_desc.IAInputSignatureSize,
-            &out_render_ctx->il_pos_normal);
+            &out_render_ctx->il_pos_normal_uv);
     assert(hres == 0);
 
     arena_restore(arena, shader_checkpoint);
+
+    // initialize textures
+
+    ID3D11Resource *texture;
+    ID3D11ShaderResourceView *texture_view;
+
+    // HR(CreateDDSTextureFromFile(device, L"Textures\\darkbrickdxt1.dds", &texture, &texture_view));
+    HR(CreateWICTextureFromFile(device, L"Textures\\wood\\wood_albedo.tif", &texture, &texture_view));
+    out_render_ctx->srv_diffuse = texture_view;
+
+    HR(CreateWICTextureFromFile(device, L"Textures\\wood\\wood_roughness.tif", &texture, &texture_view));
+    out_render_ctx->srv_specular = texture_view;
+
+    // initialize samplers??
+
 
     // initialize rasterizer states
 
