@@ -16,6 +16,70 @@
 				"isDefault": true
 			},
 			"detail": "compiler: cl.exe"
-		}
+		},
+		{
+			"type": "shell",
+			"label": "ninja",
+			"command": "ninja",
+			"options": {
+				"cwd": "${workspaceFolder}\\build"
+			},
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "compiler: cl.exe"
+		},
+		{
+			"type": "shell",
+			"label": "run cmake (ninja) debug",
+			"command": "cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug",
+			"options": {
+				"cwd": "${workspaceFolder}\\build"
+			},
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "compiler: cl.exe"
+		},
+		{
+			"type": "shell",
+			"label": "run cmake (ninja) release",
+			"command": "cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release",
+			"options": {
+				"cwd": "${workspaceFolder}\\build"
+			},
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "compiler: cl.exe"
+		},
+		{
+			"type": "shell",
+			"label": "compile shaders",
+			"command": "build_shaders.bat",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "compiler: cl.exe"
+		},
 	]
 }

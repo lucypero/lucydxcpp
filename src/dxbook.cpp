@@ -480,6 +480,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             .total_mem_size = TOTAL_MEM,
     };
 
+    #ifdef DEBUG
+    log("u are in debug");
+    #else
+    log("u are in release");
+    #endif
+
     //now i make an arena..?
     Arena big_arena = {
             .buf = (u8 *) base_mem,
