@@ -1,12 +1,18 @@
 # Lucy's dx11 game
 
-WIP. 
+For now this is just to learn 3D rendering basics as I follow a [DirectX 11 book](https://www.amazon.com/Introduction-3D-Game-Programming-DirectX/dp/1936420228)
 
-# How to build and run
+# How to build
 
-**Note**: Do *not* use Cmake to build this project. The file `CmakeLists.txt` is only here to get CLion intellisense.
+(Visual Studio and cmake need to be installed)
 
-(Visual Studio needs to be installed)
+From a Developer Command Prompt for VS, `cd` to the repo folder and run...
 
-- Run `build.bat` 
-- Run `build\lucydxcpp.exe` from the root project directory.
+```
+mkdir build
+build_shaders.bat
+cd build
+cmake ..
+```
+
+It should generate a Visual Studio solution by default.
