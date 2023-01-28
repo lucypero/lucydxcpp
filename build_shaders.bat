@@ -1,8 +1,6 @@
 @echo off
 
-set FXC_BIN="C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\fxc.exe"
-
-set debug=1==1
+set debug=1==0
 
 set flags=
 
@@ -14,8 +12,8 @@ if %debug% (
 
 if not exist "build" mkdir build
 pushd build
-%FXC_BIN% %flags% /nologo /T fx_5_0 /Fo color.fxo ..\src\shaders\color.fx
-%FXC_BIN% %flags% /nologo /T fx_5_0 /Fo color_trippy.fxo ..\src\shaders\color_trippy.fx
-%FXC_BIN% %flags% /nologo /T fx_5_0 /Fo basic.fxo ..\src\shaders\basic.fx
-%FXC_BIN% %flags% /nologo /T fx_5_0 /Fo toon.fxo ..\src\shaders\toon.fx
+fxc %flags% /nologo /T fx_5_0 /Fo color.fxo ..\src\shaders\color.fx
+fxc %flags% /nologo /T fx_5_0 /Fo color_trippy.fxo ..\src\shaders\color_trippy.fx
+fxc %flags% /nologo /T fx_5_0 /Fo basic.fxo ..\src\shaders\basic.fx
+fxc %flags% /nologo /T fx_5_0 /Fo toon.fxo ..\src\shaders\toon.fx
 popd
