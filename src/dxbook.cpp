@@ -47,13 +47,14 @@ using namespace DirectX;
 #define DEMOSTRUCT LightDemo
 #endif
 
-#include "lucytypes.cpp"
+#include "lucytypes.h"
 
 // Project types
 #include "proj_types.cpp"
 
 // project source files
-#include "math.cpp"
+#include "lucy_math.h"
+
 #include "utils.cpp"
 #include "obj_loader.cpp"
 #include "exercises.cpp"

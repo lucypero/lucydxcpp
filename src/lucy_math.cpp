@@ -1,34 +1,33 @@
-namespace math {
-    const f32 INF = FLT_MAX;
-    const f32 PI = 3.1415926535f;
+#include "lucy_math.h"
 
-    fn f32 clamp(f32 x, f32 low, f32 high) {
+namespace math {
+    f32 clamp(f32 x, f32 low, f32 high) {
         return x < low ? low : (x > high ? high : x);
     }
 
-    fn f32 _min(f32 a, f32 b) {
+    f32 _min(f32 a, f32 b) {
         return a < b ? a : b;
     }
 
-    fn f32 _max(f32 a, f32 b)
+    f32 _max(f32 a, f32 b)
     {
         return a > b ? a : b;
     }
 
-    fn u32 _min(u32 a, u32 b) {
+    u32 _min(u32 a, u32 b) {
         return a < b ? a : b;
     }
 
-    fn u32 _max(u32 a, u32 b)
+    u32 _max(u32 a, u32 b)
     {
         return a > b ? a : b;
     }
 
-    fn i32 _min(i32 a, i32 b) {
+    i32 _min(i32 a, i32 b) {
         return a < b ? a : b;
     }
 
-    fn i32 _max(i32 a, i32 b)
+    i32 _max(i32 a, i32 b)
     {
         return a > b ? a : b;
     }
@@ -55,7 +54,7 @@ namespace math {
         return theta;
     }
 
-	fn XMMATRIX InverseTranspose(CXMMATRIX M)
+	XMMATRIX InverseTranspose(CXMMATRIX M)
 	{
 		// Inverse-transpose is just applied to normals.  So zero out 
 		// translation row so that it doesn't get into our inverse-transpose
