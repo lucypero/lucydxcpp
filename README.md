@@ -4,7 +4,9 @@ For now this is just to learn 3D rendering basics as I follow a [DirectX 11 book
 
 # How to build
 
-(Visual Studio and cmake need to be installed)
+- Visual Studio and cmake need to be installed
+
+- While installing Visual Studio, pick to install the Windows SDK and the latest MSVC compiler in the Visual Studio Installer
 
 From a Developer Command Prompt for VS, `cd` to the repo folder and run...
 
@@ -16,3 +18,5 @@ cmake ..
 ```
 
 It should generate a Visual Studio solution by default.
+
+If `build_shaders.bat` fails, it might be because your `fxc.exe` is in another directory. You should have it if you have the Windows SDK installed using the Visual Studio Installer.
