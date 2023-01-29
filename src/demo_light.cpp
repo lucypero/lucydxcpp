@@ -1,9 +1,8 @@
-
 // lucy's first light demo
+
 
 // camera orbits one object and there are 3 dir lights and 1 point light.
 // u can change all light parameters and the obj model in the gui.
-
 struct LightDemo
 {
     // basic shader is in the render ctx so it won't be here.
@@ -21,7 +20,6 @@ struct LightDemo
     PointLight point_light;
 
     XMFLOAT4X4 mView;
-    XMFLOAT4X4 mProj;
 	XMFLOAT3 mEyePosW;
 
     // imgui state
@@ -40,7 +38,9 @@ struct LightDemo
     bool disable_point_light;
 };
 
-fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_state) {
+
+
+LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_state) {
 
     rctx->cam_radius = 7.0f;
 
@@ -155,11 +155,6 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_s
     out_demo_state->obj_index_count = (u32)the_obj.position_indices.size();
     out_demo_state->obj_vertex_count = (u32)obj_vertices.size();
 
-    // setting matrixes that don't need to be set every frame...
-    // (proj matrix)
-    //  TODO: this has to be set when u resize too
-    XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * math::PI, WINDOW_ASPECT_RATIO, 1.0f, 1000.0f);
-    XMStoreFloat4x4(&out_demo_state->mProj, P);
 
 
     // transform the obj here
@@ -306,9 +301,8 @@ fn void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
     rctx->device_context->IASetIndexBuffer(demo_state->ib, DXGI_FORMAT_R32_UINT, 0);
 
 	XMMATRIX view  = XMLoadFloat4x4(&demo_state->mView);
-	XMMATRIX proj  = XMLoadFloat4x4(&demo_state->mProj);
+	XMMATRIX proj  = XMLoadFloat4x4(&rctx->mProj);
 	XMMATRIX viewProj = view*proj;
-
 
 	// Set per frame constants.
 	rctx->basic_effect.SetDirLights(dir_lights);

@@ -1,3 +1,20 @@
+#pragma once
+
+#include <d3d11_1.h>
+#include <d3dcompiler.h>
+
+#include "Effects11\d3dx11effect.h"
+#include "DirectXTK\DDSTextureLoader.h"
+#include "DirectXTK\WICTextureLoader.h"
+#include "imgui\imgui.h"
+#include "imgui\backends\imgui_impl_win32.h"
+#include "imgui\backends\imgui_impl_dx11.h"
+
+#include "DirectXMath.h"
+#include "DirectXPackedVector.h"
+using namespace DirectX;
+
+
 const u32 WINDOW_WIDTH = 1280;
 const u32 WINDOW_HEIGHT = 720;
 const f32 WINDOW_ASPECT_RATIO = (f32) WINDOW_WIDTH / (f32) WINDOW_HEIGHT;
@@ -112,15 +129,24 @@ struct BasicEffect {
 
 struct RenderContext {
     HWND window;
+	i32 client_width;
+	i32 client_height;
+
     ID3D11Device1 *device;
     ID3D11DeviceContext1 *device_context;
     IDXGISwapChain1 *swapchain;
     ID3D11RenderTargetView *render_target_view;
     ID3D11DepthStencilView *depth_stencil_view;
+	ID3D11Texture2D *depth_stencil_buffer;
     POINT last_mouse_pos;
     f32 cam_yaw;
     f32 cam_pitch;
     f32 cam_radius;
+	bool minimized;
+	bool maximized;
+	bool resizing;
+
+    XMFLOAT4X4 mProj;
 
     // the effect
     BasicEffect basic_effect;

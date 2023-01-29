@@ -1,5 +1,8 @@
 #define HR(a) {HRESULT __hres = (a); assert(__hres == 0);}
 
+// Convenience macro for releasing COM objects.
+#define ReleaseCOM(x) { if(x){ x->Release(); x = 0; } }
+
 enum LucyResult {
     LRES_OK = 0,
     LRES_FAIL = 1
@@ -656,6 +659,9 @@ namespace GeometryGenerator {
     }
 }// namespace GeometryGenerator
 
+f32 aspect_ratio(RenderContext *rctx) {
+	return static_cast<float>(rctx->client_width) / rctx->client_height;
+}
 
 // todo: this doesn't compile
 //  make a substruct w shader state and use that instead of a macro...
@@ -750,4 +756,3 @@ namespace imgui_help {
         *val = XMFLOAT3(a);
     }
 }
-

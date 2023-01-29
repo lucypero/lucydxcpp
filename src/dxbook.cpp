@@ -30,6 +30,24 @@ using namespace DirectX;
 #define TITLE "lucydxcpp"
 #define ENABLE_MSAA true
 
+
+#include "lucytypes.h"
+
+// Project types
+#include "proj_types.h"
+
+// project source files
+#include "lucy_math.h"
+
+#include "utils.cpp"
+#include "obj_loader.cpp"
+#include "exercises.cpp"
+
+#include "demo_box.cpp"
+#include "demo_hills.cpp"
+#include "demo_shapes.cpp"
+#include "demo_light.cpp"
+
 // Define the demo struct number to run here
 
 // 0: Box Demo
@@ -46,24 +64,6 @@ using namespace DirectX;
 #elif DEMO_TO_RUN == 3
 #define DEMOSTRUCT LightDemo
 #endif
-
-#include "lucytypes.h"
-
-// Project types
-#include "proj_types.cpp"
-
-// project source files
-#include "lucy_math.h"
-
-#include "utils.cpp"
-#include "obj_loader.cpp"
-#include "exercises.cpp"
-
-#include "demo_box.cpp"
-#include "demo_hills.cpp"
-#include "demo_shapes.cpp"
-#include "demo_light.cpp"
-
 
 fn void OnMouseWheel(WPARAM w_delta, RenderContext *rctx) {
     i32 delta = (i32)w_delta;
@@ -107,6 +107,78 @@ fn void OnMouseMove(WPARAM btnState, i32 x, i32 y, RenderContext *ctx) {
     }
     ctx->last_mouse_pos.x = x;
     ctx->last_mouse_pos.y = y;
+}
+
+void OnResize(RenderContext *ctx) {
+    log("onresize(). new res: %i x %i", ctx->client_width, ctx->client_height);
+
+	// Release the old views, as they hold references to the buffers we
+	// will be destroying.  Also release the old depth/stencil buffer.
+
+	ReleaseCOM(ctx->render_target_view);
+	ReleaseCOM(ctx->depth_stencil_view);
+	ReleaseCOM(ctx->depth_stencil_buffer);
+    
+	// ReleaseCOM(ctx.de);
+
+	// Resize the swap chain and recreate the render target view.
+
+	HR(ctx->swapchain->ResizeBuffers(1, ctx->client_width, ctx->client_height, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
+	ID3D11Texture2D* backBuffer;
+	HR(ctx->swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer)));
+	HR(ctx->device->CreateRenderTargetView(backBuffer, 0, &ctx->render_target_view));
+	ReleaseCOM(backBuffer);
+
+
+    // checking for msaa support
+    UINT msaa_4_quality;
+    ctx->device->CheckMultisampleQualityLevels(
+            DXGI_FORMAT_R8G8B8A8_UNORM, 4, &msaa_4_quality);
+    assert(msaa_4_quality > 0);
+
+	// Create the depth/stencil buffer and view.
+
+	D3D11_TEXTURE2D_DESC depthStencilDesc;
+
+	depthStencilDesc.Width     = ctx->client_width;
+	depthStencilDesc.Height    = ctx->client_height;
+	depthStencilDesc.MipLevels = 1;
+	depthStencilDesc.ArraySize = 1;
+	depthStencilDesc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
+#if ENABLE_MSAA
+    depthStencilDesc.SampleDesc.Count   = 4;
+    depthStencilDesc.SampleDesc.Quality = msaa_4_quality-1;
+#else
+    depthStencilDesc.SampleDesc.Count   = 1;
+    depthStencilDesc.SampleDesc.Quality = 0;
+#endif
+	depthStencilDesc.Usage          = D3D11_USAGE_DEFAULT;
+	depthStencilDesc.BindFlags      = D3D11_BIND_DEPTH_STENCIL;
+	depthStencilDesc.CPUAccessFlags = 0; 
+	depthStencilDesc.MiscFlags      = 0;
+
+    HR(ctx->device->CreateTexture2D(&depthStencilDesc, 0, &ctx->depth_stencil_buffer));
+    HR(ctx->device->CreateDepthStencilView(ctx->depth_stencil_buffer, 0, &ctx->depth_stencil_view));
+
+	// Bind the render target view and depth/stencil view to the pipeline.
+
+	ctx->device_context->OMSetRenderTargets(1, &ctx->render_target_view, ctx->depth_stencil_view);
+
+	// Set the viewport transform.
+
+    D3D11_VIEWPORT vp = {};
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	vp.Width    = static_cast<float>(ctx->client_width);
+	vp.Height   = static_cast<float>(ctx->client_height);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+
+	ctx->device_context->RSSetViewports(1, &vp);
+
+    // resizing proj matrix (frustrum aspect ratio)
+    XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * math::PI, aspect_ratio(ctx), 1.0f, 1000.0f);
+    XMStoreFloat4x4(&ctx->mProj, P);
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp
@@ -189,6 +261,74 @@ fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
             case WM_MOUSEWHEEL:
                 OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wparam), rctx);
                 break;
+            case WM_SIZE:
+
+                rctx->client_width = GET_X_LPARAM(lparam);
+                rctx->client_height = GET_Y_LPARAM(lparam);
+
+                if(rctx->client_width == 0) {
+                    log("why is it 0????????");
+                    assert(false);
+                }
+
+                switch(wparam) {
+                    case SIZE_MINIMIZED:
+                        log("size minimized");
+                        rctx->minimized = true;
+				        rctx->maximized = false;
+                        break;
+                    case SIZE_MAXIMIZED:
+                        log("size maximized");
+                        rctx->minimized = false;
+				        rctx->maximized = true;
+                        OnResize(rctx);
+                        break;
+                    case SIZE_RESTORED:
+
+				        // Restoring from minimized state?
+                        if(rctx->minimized) {
+                            log("size restored from minimized state");
+                            rctx->minimized = false;
+                            OnResize(rctx);
+                        } 
+                        // Restoring from maximized state?
+                        else if (rctx->maximized) {
+                            log("size restored from maximized state");
+                            rctx->maximized = false;
+                            OnResize(rctx);
+                        } 
+                        else if (rctx->resizing) {
+                            // If user is dragging the resize bars, we do not resize 
+                            // the buffers here because as the user continuously 
+                            // drags the resize bars, a stream of WM_SIZE messages are
+                            // sent to the window, and it would be pointless (and slow)
+                            // to resize for each WM_SIZE message received from dragging
+                            // the resize bars.  So instead, we reset after the user is 
+                            // done resizing the window and releases the resize bars, which 
+                            // sends a WM_EXITSIZEMOVE message.
+                        } 
+                        else // API call such as SetWindowPos or mSwapChain->SetFullscreenState.
+                        {
+                            log("size restored from other means");
+                            OnResize(rctx);
+                        }
+                        break;
+                }
+                break;
+
+            // WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+            case WM_ENTERSIZEMOVE:
+                log("enter size move");
+                rctx->resizing  = true;
+                break;
+
+            // WM_EXITSIZEMOVE is sent when the user releases the resize bars.
+            // Here we reset everything based on the new window dimensions.
+            case WM_EXITSIZEMOVE:
+                rctx->resizing = false;
+                log("exit size move");
+                OnResize(rctx);
+                return 0;
 
             default:
                 result = DefWindowProcA(hwnd, msg, wparam, lparam);
@@ -198,7 +338,15 @@ fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     return result;
 }
 
+// todo: unify swapchain creation both on init and on resize by putting it here
+LucyResult recreate_swapchain(Arena *arena, RenderContext *out_render_ctx) {
+    return LRES_OK;
+}
+
 LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext *out_render_ctx) {
+
+    out_render_ctx->client_width = WINDOW_WIDTH;
+    out_render_ctx->client_height = WINDOW_HEIGHT;
 
     WNDCLASSEXA wndClassEx = {sizeof(wndClassEx)};
     wndClassEx.lpfnWndProc = WndProc;
@@ -207,8 +355,8 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
     RegisterClassExA(&wndClassEx);
 
     RECT initialRect = {
-            .right = WINDOW_WIDTH,
-            .bottom = WINDOW_HEIGHT,
+            .right = out_render_ctx->client_width,
+            .bottom = out_render_ctx->client_height,
     };
 
     AdjustWindowRectEx(&initialRect, WS_OVERLAPPEDWINDOW, FALSE, WS_EX_OVERLAPPEDWINDOW);
@@ -307,7 +455,7 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
     assert(hres == 0);
 
     // telling dxgi to not mess with the window event queue (basically disable auto alt+enter for fullscreen)
-    dxgi_factory->MakeWindowAssociation(window, DXGI_MWA_NO_WINDOW_CHANGES);
+    // dxgi_factory->MakeWindowAssociation(window, DXGI_MWA_NO_WINDOW_CHANGES);
 
     // creating the view to the back buffer
     ID3D11RenderTargetView *render_target_view;
@@ -315,12 +463,13 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
     swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void **>(&back_buffer));
     hres = device->CreateRenderTargetView(back_buffer, 0, &render_target_view);
     assert(hres == 0);
+    ReleaseCOM(back_buffer);
 
     // creating depth/stencil buffer
 
     D3D11_TEXTURE2D_DESC depth_desc = {};
-    depth_desc.Width = WINDOW_WIDTH;
-    depth_desc.Height = WINDOW_HEIGHT;
+    depth_desc.Width = out_render_ctx->client_width;
+    depth_desc.Height = out_render_ctx->client_height;
     depth_desc.MipLevels = 1;
     depth_desc.ArraySize = 1;
     depth_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -352,8 +501,8 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
     D3D11_VIEWPORT vp = {};
     vp.TopLeftX = 0.0f;
     vp.TopLeftY = 0.0f;
-    vp.Width = static_cast<float>(WINDOW_WIDTH);
-    vp.Height = static_cast<float>(WINDOW_HEIGHT);
+    vp.Width = static_cast<float>(out_render_ctx->client_width);
+    vp.Height = static_cast<float>(out_render_ctx->client_height);
 
     //try this once you have something rendered..
     //    vp.TopLeftX = 100.0f;
@@ -454,12 +603,20 @@ LucyResult render_context_init(Arena *arena, HINSTANCE hInstance, RenderContext 
 
     // INITIALIZING DX /END ------------------------
 
+
+    // setting matrixes that don't need to be set every frame...
+    // (proj matrix)
+    //  TODO: this has to be set when u resize too
+    XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * math::PI, aspect_ratio(out_render_ctx), 1.0f, 1000.0f);
+    XMStoreFloat4x4(&out_render_ctx->mProj, P);
+
     out_render_ctx->window = window;
     out_render_ctx->device = device;
     out_render_ctx->device_context = device_context;
     out_render_ctx->swapchain = swapchain;
     out_render_ctx->render_target_view = render_target_view;
     out_render_ctx->depth_stencil_view = depth_stencil_view;
+    out_render_ctx->depth_stencil_buffer = depth_stencil_buffer;
 
     out_render_ctx->last_mouse_pos = {};
     out_render_ctx->cam_yaw = 0.0f;
