@@ -181,6 +181,83 @@ void OnResize(RenderContext *ctx) {
     XMStoreFloat4x4(&ctx->mProj, P);
 }
 
+LRESULT handle_resizing(i32 msg, LPARAM wparam, i32 width, i32 height, RenderContext *rctx) {
+
+    LRESULT res = 0;
+
+    switch (msg) {
+        case WM_SIZE:
+            rctx->client_width = width;
+            rctx->client_height = height;
+
+            if(rctx->client_width == 0) {
+                log("why is it 0????????");
+                assert(false);
+            }
+
+            switch(wparam) {
+                case SIZE_MINIMIZED:
+                    log("size minimized");
+                    rctx->minimized = true;
+                    rctx->maximized = false;
+                    break;
+                case SIZE_MAXIMIZED:
+                    log("size maximized");
+                    rctx->minimized = false;
+                    rctx->maximized = true;
+                    OnResize(rctx);
+                    break;
+                case SIZE_RESTORED:
+
+                    // Restoring from minimized state?
+                    if(rctx->minimized) {
+                        log("size restored from minimized state");
+                        rctx->minimized = false;
+                        OnResize(rctx);
+                    } 
+                    // Restoring from maximized state?
+                    else if (rctx->maximized) {
+                        log("size restored from maximized state");
+                        rctx->maximized = false;
+                        OnResize(rctx);
+                    } 
+                    else if (rctx->resizing) {
+                        // If user is dragging the resize bars, we do not resize 
+                        // the buffers here because as the user continuously 
+                        // drags the resize bars, a stream of WM_SIZE messages are
+                        // sent to the window, and it would be pointless (and slow)
+                        // to resize for each WM_SIZE message received from dragging
+                        // the resize bars.  So instead, we reset after the user is 
+                        // done resizing the window and releases the resize bars, which 
+                        // sends a WM_EXITSIZEMOVE message.
+                    } 
+                    else // API call such as SetWindowPos or mSwapChain->SetFullscreenState.
+                    {
+                        log("size restored from other means");
+                        OnResize(rctx);
+                    }
+                    break;
+            }
+            break;
+
+        // WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+        case WM_ENTERSIZEMOVE:
+            log("enter size move");
+            rctx->resizing  = true;
+            break;
+
+        // WM_EXITSIZEMOVE is sent when the user releases the resize bars.
+        // Here we reset everything based on the new window dimensions.
+        case WM_EXITSIZEMOVE:
+            rctx->resizing = false;
+            log("exit size move");
+            OnResize(rctx);
+            return 0;
+    }
+
+    return res;
+}
+
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -223,19 +300,21 @@ fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
                 rctx->last_mouse_pos.x = GET_X_LPARAM(lparam);
                 rctx->last_mouse_pos.y = GET_Y_LPARAM(lparam);
                 return 0;
+            case WM_SIZE:
+            case WM_ENTERSIZEMOVE:
+            case WM_EXITSIZEMOVE:
+                result = handle_resizing(msg, wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam), rctx);
+                break;
             default:
                 result = DefWindowProcA(hwnd, msg, wparam, lparam);
         }
     } else {
-
         // user handling (when not in imgui)
         switch (msg) {
             case WM_CREATE: {
                 //SetWindowLongPtrA(window, GWLP_USERDATA, )
-
                 break;
             }
-
             case WM_KEYDOWN: {
                 if (wparam == VK_ESCAPE)
                     DestroyWindow(hwnd);
@@ -262,74 +341,10 @@ fn LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
                 OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wparam), rctx);
                 break;
             case WM_SIZE:
-
-                rctx->client_width = GET_X_LPARAM(lparam);
-                rctx->client_height = GET_Y_LPARAM(lparam);
-
-                if(rctx->client_width == 0) {
-                    log("why is it 0????????");
-                    assert(false);
-                }
-
-                switch(wparam) {
-                    case SIZE_MINIMIZED:
-                        log("size minimized");
-                        rctx->minimized = true;
-				        rctx->maximized = false;
-                        break;
-                    case SIZE_MAXIMIZED:
-                        log("size maximized");
-                        rctx->minimized = false;
-				        rctx->maximized = true;
-                        OnResize(rctx);
-                        break;
-                    case SIZE_RESTORED:
-
-				        // Restoring from minimized state?
-                        if(rctx->minimized) {
-                            log("size restored from minimized state");
-                            rctx->minimized = false;
-                            OnResize(rctx);
-                        } 
-                        // Restoring from maximized state?
-                        else if (rctx->maximized) {
-                            log("size restored from maximized state");
-                            rctx->maximized = false;
-                            OnResize(rctx);
-                        } 
-                        else if (rctx->resizing) {
-                            // If user is dragging the resize bars, we do not resize 
-                            // the buffers here because as the user continuously 
-                            // drags the resize bars, a stream of WM_SIZE messages are
-                            // sent to the window, and it would be pointless (and slow)
-                            // to resize for each WM_SIZE message received from dragging
-                            // the resize bars.  So instead, we reset after the user is 
-                            // done resizing the window and releases the resize bars, which 
-                            // sends a WM_EXITSIZEMOVE message.
-                        } 
-                        else // API call such as SetWindowPos or mSwapChain->SetFullscreenState.
-                        {
-                            log("size restored from other means");
-                            OnResize(rctx);
-                        }
-                        break;
-                }
-                break;
-
-            // WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
             case WM_ENTERSIZEMOVE:
-                log("enter size move");
-                rctx->resizing  = true;
-                break;
-
-            // WM_EXITSIZEMOVE is sent when the user releases the resize bars.
-            // Here we reset everything based on the new window dimensions.
             case WM_EXITSIZEMOVE:
-                rctx->resizing = false;
-                log("exit size move");
-                OnResize(rctx);
-                return 0;
-
+                result = handle_resizing(msg, wparam, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam), rctx);
+                break;
             default:
                 result = DefWindowProcA(hwnd, msg, wparam, lparam);
         }
