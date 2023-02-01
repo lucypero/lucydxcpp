@@ -3,6 +3,7 @@
 #include "lucytypes.h"
 #include "proj_types.h"
 #include "utils.h"
+#include "renderer.h"
 
 #define DEMOSTRUCT LightDemo
 

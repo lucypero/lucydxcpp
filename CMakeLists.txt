@@ -38,6 +38,7 @@ set(SOURCE
     src/demo_shapes.cpp
     src/demo_light.cpp
     src/exercises.cpp
+    src/renderer.cpp
 )
 
 add_executable (${PROJECT_NAME} WIN32 ${SOURCE})

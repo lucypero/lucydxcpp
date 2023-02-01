@@ -74,15 +74,10 @@ namespace GeometryGenerator {
     void create_cylinder(f32 bottom_radius, f32 top_radius, f32 height, u32 slice_count, u32 stack_count, MeshData *mesh_data);
     void subdivide(MeshData *mesh_data);
     void create_box(float width, float height, float depth, MeshData *meshData);
-    void create_sphere(float radius, UINT sliceCount, UINT stackCount, MeshData *mesh_data);
+    void create_sphere(float radius, u32 sliceCount, u32 stackCount, MeshData *mesh_data);
     void create_geosphere(float radius, u32 numSubdivisions, MeshData *mesh_data);
 }// namespace GeometryGenerator
 
-f32 aspect_ratio(RenderContext *rctx);
-
-// todo: this doesn't compile
-//  make a substruct w shader state and use that instead of a macro...
-LucyResult setup_color_shader(Arena *arena, RenderContext *rctx, ShaderFile shader_file, Shader *out_shader);
 
 namespace imgui_help {
     void float4_edit(const char *label, XMFLOAT4 *val);

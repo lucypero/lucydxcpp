@@ -2,6 +2,7 @@
 
 #include "obj_loader.h"
 
+
 bool point_to_end_of_line(Buf *file, i64 *pointer) {
     char *buf = (char*)file->buf;
     char c = buf[*pointer];

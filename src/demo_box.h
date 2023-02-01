@@ -2,6 +2,7 @@
 
 #include "lucy_math.h"
 #include "utils.h"
+#include "renderer.h"
 
 #define DEMOSTRUCT BoxDemo
 

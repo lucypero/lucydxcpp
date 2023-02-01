@@ -9,6 +9,7 @@
 #include "lucytypes.h"
 #include "proj_types.h"
 #include "utils.h"
+#include "renderer.h"
 
 struct ObjParser {
     i64 pointer;

@@ -3,6 +3,7 @@
 #include "lucy_math.h"
 #include "Effects11\d3dx11effect.h"
 #include "utils.h"
+#include "renderer.h"
 
 #define DEMOSTRUCT HillsDemo
 

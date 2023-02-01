@@ -1,5 +1,8 @@
 #include "utils.h"
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 #include "imgui\imgui.h"
 
 void log(const char *format, ...) {
@@ -452,7 +455,7 @@ namespace GeometryGenerator {
         meshData->Indices.assign(&i[0], &i[36]);
     }
 
-    void create_sphere(float radius, UINT sliceCount, UINT stackCount, MeshData *mesh_data)
+    void create_sphere(float radius, u32 sliceCount, u32 stackCount, MeshData *mesh_data)
     {
         mesh_data->Vertices.clear();
         mesh_data->Indices.clear();
@@ -619,79 +622,6 @@ namespace GeometryGenerator {
     }
 }// namespace GeometryGenerator
 
-f32 aspect_ratio(RenderContext *rctx) {
-	return static_cast<float>(rctx->client_width) / rctx->client_height;
-}
-
-// todo: this doesn't compile
-//  make a substruct w shader state and use that instead of a macro...
-
-LucyResult setup_color_shader(Arena *arena, RenderContext *rctx, ShaderFile shader_file, Shader *out_shader) {
-
-    u64 checkpoint = arena_save(arena);
-
-    Buf color_fx_buf;
-    LucyResult lres; 
-
-    switch (shader_file){
-        case ShaderFile::Color: {
-            lres = read_whole_file(arena, "build\\color.fxo", &color_fx_buf);
-        }; break;
-        case ShaderFile::ColorTrippy: {
-            lres = read_whole_file(arena, "build\\color_trippy.fxo", &color_fx_buf);
-        }; break;
-    };
-    
-    assert(lres == LRES_OK);
-
-    ID3DX11Effect *effect;
-
-    HRESULT hres = D3DX11CreateEffectFromMemory(
-            color_fx_buf.buf,
-            color_fx_buf.size,
-            0, rctx->device,
-            &effect);
-    assert(hres == 0);
-
-    //getting tech and WVP matrix from effect
-    ID3DX11EffectTechnique *tech = effect->GetTechniqueByName("ColorTech");
-    assert(tech->IsValid());
-
-    ID3DX11EffectMatrixVariable *wvp_mat_var = effect->GetVariableByName("gWorldViewProj")->AsMatrix();
-    assert(wvp_mat_var->IsValid());
-
-    ID3DX11EffectScalarVariable *time_var = effect->GetVariableByName("gTime")->AsScalar();
-    assert(time_var->IsValid());
-
-    // shader input layout
-
-    ID3D11InputLayout *input_layout = nullptr;
-    D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-
-    D3DX11_PASS_DESC pass_desc;
-    tech->GetPassByIndex(0)->GetDesc(&pass_desc);
-
-    hres = rctx->device->CreateInputLayout(
-            inputElementDesc,
-            arrsize(inputElementDesc),
-            pass_desc.pIAInputSignature,
-            pass_desc.IAInputSignatureSize,
-            &input_layout);
-    assert(hres == 0);
-
-    // don't need the shader buffer anymore. color_fx_buf is invalid now.
-    arena_restore(arena, checkpoint);
-
-    out_shader->tech = tech;
-    out_shader->mInputLayout = input_layout;
-    out_shader->wvp_mat_var = wvp_mat_var;
-    out_shader->time_var = time_var;
-
-    return LRES_OK;
-}
 
 namespace imgui_help {
     void float4_edit(const char *label, XMFLOAT4 *val) {
