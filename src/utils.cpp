@@ -1,36 +1,7 @@
-#define HR(a) {HRESULT __hres = (a); assert(__hres == 0);}
+#include "utils.h"
+#include "lucy_math.h"
 
-// Convenience macro for releasing COM objects.
-#define ReleaseCOM(x) { if(x){ x->Release(); x = 0; } }
-
-enum LucyResult {
-    LRES_OK = 0,
-    LRES_FAIL = 1
-};
-
-struct ProgramState {
-    void *base_mem;
-    u64 total_mem_size;
-};
-
-struct Arena {
-    u8 *buf;
-    u64 offset;//arena offset pointer. it offsets to the first free byte. starts at 0
-    u64 size;
-};
-
-struct Buf {
-    void *buf;
-    u64 size;
-};
-
-// lucy's assert
-// stops execution if false as if it is a debugger breakpoint
-fn void lassert() {
-
-}
-
-fn void log(const char *format, ...) {
+void log(const char *format, ...) {
     va_list argp;
     char buf[200];
     va_start(argp, format);
@@ -41,7 +12,7 @@ fn void log(const char *format, ...) {
     OutputDebugStringA(buf);
 }
 
-fn void *arena_push(Arena *arena, u64 size) {
+void *arena_push(Arena *arena, u64 size) {
     void *ret_buf = arena->buf + arena->offset;
 
     arena->offset += size;
@@ -52,25 +23,25 @@ fn void *arena_push(Arena *arena, u64 size) {
     return ret_buf;
 }
 
-fn void arena_clear(Arena *arena) {
+void arena_clear(Arena *arena) {
     arena->offset = 0;
 }
 
-fn void arena_zero(Arena *arena) {
+void arena_zero(Arena *arena) {
     arena->offset = 0;
     memset(arena->buf, 0, arena->size);
 }
 
-fn u64 arena_save(Arena *arena) {
+u64 arena_save(Arena *arena) {
     return arena->offset;
 }
 
-fn void arena_restore(Arena *arena, u64 checkpoint) {
+void arena_restore(Arena *arena, u64 checkpoint) {
     arena->offset = checkpoint;
 }
 
 //this allocs a buffer w the file contents
-fn LucyResult read_whole_file(Arena *arena, const char *file_path, Buf *out_buf) {
+LucyResult read_whole_file(Arena *arena, const char *file_path, Buf *out_buf) {
     HANDLE hTextFile = CreateFileA(file_path, GENERIC_READ, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     LucyResult ret = LRES_OK;
 
@@ -101,18 +72,6 @@ fn LucyResult read_whole_file(Arena *arena, const char *file_path, Buf *out_buf)
 }
 
 namespace GeometryGenerator {
-
-    struct Vertex {
-        XMFLOAT3 Position;
-        XMFLOAT3 Normal;
-        XMFLOAT3 tangent_u;
-        XMFLOAT3 tex_c;
-    };
-
-    struct MeshData {
-        std::vector<Vertex> Vertices;
-        std::vector<u32> Indices;
-    };
 
     Vertex vertex_new( float px, float py, float pz,
             float nx, float ny, float nz,
@@ -732,8 +691,6 @@ LucyResult setup_color_shader(Arena *arena, RenderContext *rctx, ShaderFile shad
 
     return LRES_OK;
 }
-
-
 
 namespace imgui_help {
     void float4_edit(const char *label, XMFLOAT4 *val) {

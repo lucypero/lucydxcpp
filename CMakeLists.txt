@@ -29,8 +29,10 @@ include_directories(third_party/include/imgui)
 include_directories(src/)
 
 set(SOURCE
-    src/dxbook.cpp
+    src/main.cpp
     src/lucy_math.cpp
+    src/obj_loader.cpp
+    src/utils.cpp
 )
 
 add_executable (${PROJECT_NAME} WIN32 ${SOURCE})

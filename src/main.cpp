@@ -2,8 +2,8 @@
 #pragma comment(lib, "d3d11")
 #pragma comment(lib, "d3dcompiler")
 
+//system headers
 #include <stdint.h>
-
 #define WIN32_LEAN_AND_MEAN
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
@@ -11,7 +11,7 @@
 #include <windows.h>
 #include <string>
 #include <unordered_map>
-
+#include <vector>
 
 // libraries
 #include "Effects11\d3dx11effect.h"
@@ -21,28 +21,19 @@
 #include "imgui\backends\imgui_impl_win32.h"
 #include "imgui\backends\imgui_impl_dx11.h"
 
-#include "DirectXMath.h"
-#include "DirectXPackedVector.h"
-using namespace DirectX;
-
-#include <vector>
-
 #define TITLE "lucydxcpp"
 #define ENABLE_MSAA true
 
-
+// project headers
 #include "lucytypes.h"
-
-// Project types
 #include "proj_types.h"
-
-// project source files
 #include "lucy_math.h"
+#include "utils.h"
+#include "obj_loader.h"
 
-#include "utils.cpp"
-#include "obj_loader.cpp"
+
+// project source (make header files)
 #include "exercises.cpp"
-
 #include "demo_box.cpp"
 #include "demo_hills.cpp"
 #include "demo_shapes.cpp"
