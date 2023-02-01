@@ -119,15 +119,11 @@ LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_stat
         assert(the_obj.uv_indices.size() == the_obj.position_indices.size());
 
         // get pos, get normal, then make vertex and push
-
         obj_indices[i] = (u32)the_obj.position_indices[i] - 1;
 
         obj_vertices[i].Pos = the_obj.positions[the_obj.position_indices[i] - 1];
         obj_vertices[i].Normal = the_obj.normals[the_obj.normal_indices[i] - 1];
         obj_vertices[i].Tex = the_obj.uvs[the_obj.uv_indices[i] - 1];
-
-        // log("vertex %i pos %f %f %f", obj_indices[i], obj_vertices[obj_indices[i]].Pos.x, obj_vertices[obj_indices[i]].Pos.y, obj_vertices[obj_indices[i]].Pos.z);
-        // log("vertex %i normal %f %f %f", obj_indices[i], obj_vertices[obj_indices[i]].Normal.x, obj_vertices[obj_indices[i]].Normal.y, obj_vertices[obj_indices[i]].Normal.z);
     }
 
     D3D11_BUFFER_DESC vbd = {};
