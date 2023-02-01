@@ -3,6 +3,8 @@
 #include "lucy_math.h"
 #include "utils.h"
 
+#define DEMOSTRUCT ShapesDemo
+
 struct ShapesDemo {
 
     // shader vars

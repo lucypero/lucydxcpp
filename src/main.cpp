@@ -1,17 +1,11 @@
 #pragma comment(lib, "user32")
 #pragma comment(lib, "d3d11")
-#pragma comment(lib, "d3dcompiler")
 
 //system headers
 #include <stdint.h>
 #define WIN32_LEAN_AND_MEAN
 #include <d3d11_1.h>
-#include <d3dcompiler.h>
-#include <stdio.h>
 #include <windows.h>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 // libraries
 #include "Effects11\d3dx11effect.h"
@@ -29,29 +23,7 @@
 #include "proj_types.h"
 #include "lucy_math.h"
 #include "utils.h"
-#include "obj_loader.h"
-#include "exercises.h"
-#include "demo_box.h"
-#include "demo_hills.h"
-#include "demo_shapes.h"
 #include "demo_light.h"
-
-// Define the demo struct number to run here
-
-// 0: Box Demo
-// 1: Hills Demo
-// 2: Shapes Demo
-#define DEMO_TO_RUN 3
-
-#if DEMO_TO_RUN == 0
-#define DEMOSTRUCT BoxDemo
-#elif DEMO_TO_RUN == 1
-#define DEMOSTRUCT HillsDemo
-#elif DEMO_TO_RUN == 2
-#define DEMOSTRUCT ShapesDemo
-#elif DEMO_TO_RUN == 3
-#define DEMOSTRUCT LightDemo
-#endif
 
 fn void OnMouseWheel(WPARAM w_delta, RenderContext *rctx) {
     i32 delta = (i32)w_delta;

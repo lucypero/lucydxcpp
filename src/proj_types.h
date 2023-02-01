@@ -1,19 +1,9 @@
 #pragma once
 
 #include <d3d11_1.h>
-#include <d3dcompiler.h>
-
 #include "Effects11\d3dx11effect.h"
-#include "DirectXTK\DDSTextureLoader.h"
-#include "DirectXTK\WICTextureLoader.h"
-#include "imgui\imgui.h"
-#include "imgui\backends\imgui_impl_win32.h"
-#include "imgui\backends\imgui_impl_dx11.h"
 
-#include "DirectXMath.h"
-#include "DirectXPackedVector.h"
-using namespace DirectX;
-
+#include "lucy_math.h"
 
 const u32 WINDOW_WIDTH = 1280;
 const u32 WINDOW_HEIGHT = 720;
@@ -23,7 +13,6 @@ struct ColorVertex {
     XMFLOAT3 Pos;
     XMFLOAT4 Color;
 };
-
 
 struct Vertex {
     XMFLOAT3 Pos;

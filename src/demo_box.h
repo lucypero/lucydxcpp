@@ -3,6 +3,8 @@
 #include "lucy_math.h"
 #include "utils.h"
 
+#define DEMOSTRUCT BoxDemo
+
 // BOX DEMO
 
 struct BoxDemo {

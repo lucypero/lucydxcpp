@@ -4,7 +4,6 @@
 
 #include "lucytypes.h"
 #include "proj_types.h"
-#include "lucy_math.h"
 
 #define HR(a) {HRESULT __hres = (a); assert(__hres == 0);}
 

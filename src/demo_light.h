@@ -4,6 +4,8 @@
 #include "proj_types.h"
 #include "utils.h"
 
+#define DEMOSTRUCT LightDemo
+
 // lucy's first light demo
 
 // camera orbits one object and there are 3 dir lights and 1 point light.

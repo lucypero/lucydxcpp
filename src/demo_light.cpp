@@ -1,6 +1,7 @@
 #include "demo_light.h"
 
 #include "obj_loader.h"
+#include "imgui\imgui.h"
 
 // lucy's first light demo
 

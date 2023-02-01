@@ -1,6 +1,7 @@
 #include "demo_shapes.h"
 
 #include "obj_loader.h"
+#include "imgui\imgui.h"
 
 LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_state) {
 

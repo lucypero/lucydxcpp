@@ -4,6 +4,8 @@
 #include "Effects11\d3dx11effect.h"
 #include "utils.h"
 
+#define DEMOSTRUCT HillsDemo
+
 struct HillsDemo {
     ID3DX11EffectTechnique *tech;
     ID3DX11EffectMatrixVariable *wvp_mat_var;

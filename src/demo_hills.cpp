@@ -1,4 +1,5 @@
 #include "demo_hills.h"
+#include "imgui\imgui.h"
 
 // HILLS DEMO
 
