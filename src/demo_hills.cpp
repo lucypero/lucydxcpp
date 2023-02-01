@@ -1,27 +1,8 @@
+#include "demo_hills.h"
+
 // HILLS DEMO
 
-struct HillsDemo {
-    ID3DX11EffectTechnique *tech;
-    ID3DX11EffectMatrixVariable *wvp_mat_var;
-    ID3D11InputLayout *input_layout;
-
-    XMFLOAT4X4 mat_world;
-    XMFLOAT4X4 mat_view;
-    XMFLOAT4X4 mat_proj;
-
-    //hills
-    GeometryGenerator::MeshData grid;
-
-    u32 grid_index_count;
-    ID3D11Buffer *hills_vb;
-    ID3D11Buffer *hills_ib;
-
-    //imgui controls
-    f32 height_cofactor;
-};
-
-
-fn f32 get_height(f32 x, f32 z) {
+f32 get_height(f32 x, f32 z) {
     return 0.5f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
 }
 
@@ -54,7 +35,7 @@ void regen_vertices(const HillsDemo *demo_state, const GeometryGenerator::MeshDa
     }
 }
 
-fn LucyResult demo_init(Arena *arena, RenderContext *rctx, HillsDemo *out_demo_state) {
+LucyResult demo_init(Arena *arena, RenderContext *rctx, HillsDemo *out_demo_state) {
 
     out_demo_state->height_cofactor = 1.0f;
 
@@ -182,7 +163,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, HillsDemo *out_demo_s
 }
 
 // update and render (runs every frame)
-fn void demo_update_render(RenderContext *rctx, HillsDemo *demo_state) {
+void demo_update_render(RenderContext *rctx, HillsDemo *demo_state) {
 
     //imgui stuff
     ImGui::DragFloat("height factor", &demo_state->height_cofactor, 0.1f, 0.0f, 10.0f);

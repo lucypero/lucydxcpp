@@ -30,14 +30,11 @@
 #include "lucy_math.h"
 #include "utils.h"
 #include "obj_loader.h"
-
-
-// project source (make header files)
-#include "exercises.cpp"
-#include "demo_box.cpp"
-#include "demo_hills.cpp"
-#include "demo_shapes.cpp"
-#include "demo_light.cpp"
+#include "exercises.h"
+#include "demo_box.h"
+#include "demo_hills.h"
+#include "demo_shapes.h"
+#include "demo_light.h"
 
 // Define the demo struct number to run here
 

@@ -1,5 +1,7 @@
+#include "exercises.h"
+
 // 4.7 EXERCISES ----------------
-fn void enum_adapters(Arena *arena, IDXGIFactory2 *dxgi_factory) {
+void enum_adapters(Arena *arena, IDXGIFactory2 *dxgi_factory) {
 
     u64 checkpoint = arena_save(arena);
 

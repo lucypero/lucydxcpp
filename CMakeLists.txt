@@ -33,6 +33,11 @@ set(SOURCE
     src/lucy_math.cpp
     src/obj_loader.cpp
     src/utils.cpp
+    src/demo_box.cpp
+    src/demo_hills.cpp
+    src/demo_shapes.cpp
+    src/demo_light.cpp
+    src/exercises.cpp
 )
 
 add_executable (${PROJECT_NAME} WIN32 ${SOURCE})

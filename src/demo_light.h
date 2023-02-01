@@ -2,12 +2,12 @@
 
 #include "lucytypes.h"
 #include "proj_types.h"
+#include "utils.h"
 
 // lucy's first light demo
 
 // camera orbits one object and there are 3 dir lights and 1 point light.
 // u can change all light parameters and the obj model in the gui.
-
 struct LightDemo
 {
     // basic shader is in the render ctx so it won't be here.
@@ -43,9 +43,8 @@ struct LightDemo
     bool disable_point_light;
 };
 
-LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_state);
 
-void demo_resize(RenderContext *rctx, LightDemo *demo_state);
+LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_state);
 
 // update and render (runs every frame)
 void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt);

@@ -1,29 +1,8 @@
+#include "demo_box.h"
+
 // BOX DEMO
 
-struct BoxDemo {
-    // shader vars
-    Shader shader;
-
-    ID3D11Buffer *box_vb;
-    ID3D11Buffer *box_ib;
-    u32 index_count = 36;
-
-    XMFLOAT4X4 mat_world;
-    XMFLOAT4X4 mat_view;
-    XMFLOAT4X4 mat_proj;
-
-    f32 clear_color[4];
-    f32 cube_color[4];
-
-    f32 total_time;
-
-    ID3D11RasterizerState *rs_wireframe;
-    ID3D11RasterizerState *rs_solid;
-
-    bool enable_wireframe_view;
-};
-
-fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_state) {
+LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_state) {
 
     // VARIABLES like WVP matrix and stuff ------------
 
@@ -161,7 +140,7 @@ fn LucyResult demo_init(Arena *arena, RenderContext *rctx, BoxDemo *out_demo_sta
 }
 
 // update and render (runs every frame)
-fn void demo_update_render(RenderContext *rctx, BoxDemo *demo_state, f32 dt) {
+void demo_update_render(RenderContext *rctx, BoxDemo *demo_state, f32 dt) {
 
     demo_state->total_time += dt;
 
