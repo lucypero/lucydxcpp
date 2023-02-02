@@ -3,7 +3,7 @@
 #include "obj_loader.h"
 
 
-bool point_to_end_of_line(Buf *file, i64 *pointer) {
+static bool point_to_end_of_line(Buf *file, i64 *pointer) {
     char *buf = (char*)file->buf;
     char c = buf[*pointer];
     while(c != '\n' && c != '\r') {
@@ -20,7 +20,7 @@ bool point_to_end_of_line(Buf *file, i64 *pointer) {
     return false;
 }
 
-bool point_to_next_line(Buf *file, i64 *pointer) {
+static bool point_to_next_line(Buf *file, i64 *pointer) {
     char *buf = (char*)file->buf;
     char c = buf[*pointer];
     while(c != '\n' && c != '\r') {
@@ -47,11 +47,11 @@ bool point_to_next_line(Buf *file, i64 *pointer) {
     return false;
 }
 
-bool parse_mtl_line(Arena *arena, i64 *pointer, Buf *file, std::unordered_map<std::string, Material> *materials) {
+static bool parse_mtl_line(Arena *arena, i64 *pointer, Buf *file, std::unordered_map<std::string, Material> *materials) {
     return true;
 }
 
-LucyResult load_mtl(Arena *arena, std::string *file_path, std::unordered_map<std::string, Material> *materials) {
+static LucyResult load_mtl(Arena *arena, std::string *file_path, std::unordered_map<std::string, Material> *materials) {
 
     Buf file = {};
 
@@ -74,7 +74,7 @@ LucyResult load_mtl(Arena *arena, std::string *file_path, std::unordered_map<std
     return LRES_OK;
 }
 
-bool parse_line(Arena *arena, ObjParser *parser, Buf *file, ObjFile *obj) {
+static bool parse_line(Arena *arena, ObjParser *parser, Buf *file, ObjFile *obj) {
 
     i64 start = parser->pointer;
     bool file_ends = point_to_end_of_line(file, &parser->pointer);

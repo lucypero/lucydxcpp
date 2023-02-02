@@ -14,7 +14,6 @@
 #include "imgui\backends\imgui_impl_dx11.h"
 
 #define TITLE "lucydxcpp"
-#define ENABLE_MSAA true
 
 // project headers
 #include "lucytypes.h"
@@ -70,74 +69,7 @@ fn void OnMouseMove(WPARAM btnState, i32 x, i32 y, RenderContext *ctx) {
 
 void OnResize(RenderContext *ctx) {
     log("onresize(). new res: %i x %i", ctx->client_width, ctx->client_height);
-
-	// Release the old views, as they hold references to the buffers we
-	// will be destroying.  Also release the old depth/stencil buffer.
-
-	ReleaseCOM(ctx->render_target_view);
-	ReleaseCOM(ctx->depth_stencil_view);
-	ReleaseCOM(ctx->depth_stencil_buffer);
-    
-	// ReleaseCOM(ctx.de);
-
-	// Resize the swap chain and recreate the render target view.
-
-	HR(ctx->swapchain->ResizeBuffers(1, ctx->client_width, ctx->client_height, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
-	ID3D11Texture2D* backBuffer;
-	HR(ctx->swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer)));
-	HR(ctx->device->CreateRenderTargetView(backBuffer, 0, &ctx->render_target_view));
-	ReleaseCOM(backBuffer);
-
-
-    // checking for msaa support
-    UINT msaa_4_quality;
-    ctx->device->CheckMultisampleQualityLevels(
-            DXGI_FORMAT_R8G8B8A8_UNORM, 4, &msaa_4_quality);
-    assert(msaa_4_quality > 0);
-
-	// Create the depth/stencil buffer and view.
-
-	D3D11_TEXTURE2D_DESC depthStencilDesc;
-
-	depthStencilDesc.Width     = ctx->client_width;
-	depthStencilDesc.Height    = ctx->client_height;
-	depthStencilDesc.MipLevels = 1;
-	depthStencilDesc.ArraySize = 1;
-	depthStencilDesc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
-#if ENABLE_MSAA
-    depthStencilDesc.SampleDesc.Count   = 4;
-    depthStencilDesc.SampleDesc.Quality = msaa_4_quality-1;
-#else
-    depthStencilDesc.SampleDesc.Count   = 1;
-    depthStencilDesc.SampleDesc.Quality = 0;
-#endif
-	depthStencilDesc.Usage          = D3D11_USAGE_DEFAULT;
-	depthStencilDesc.BindFlags      = D3D11_BIND_DEPTH_STENCIL;
-	depthStencilDesc.CPUAccessFlags = 0; 
-	depthStencilDesc.MiscFlags      = 0;
-
-    HR(ctx->device->CreateTexture2D(&depthStencilDesc, 0, &ctx->depth_stencil_buffer));
-    HR(ctx->device->CreateDepthStencilView(ctx->depth_stencil_buffer, 0, &ctx->depth_stencil_view));
-
-	// Bind the render target view and depth/stencil view to the pipeline.
-
-	ctx->device_context->OMSetRenderTargets(1, &ctx->render_target_view, ctx->depth_stencil_view);
-
-	// Set the viewport transform.
-
-    D3D11_VIEWPORT vp = {};
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	vp.Width    = static_cast<float>(ctx->client_width);
-	vp.Height   = static_cast<float>(ctx->client_height);
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-
-	ctx->device_context->RSSetViewports(1, &vp);
-
-    // resizing proj matrix (frustrum aspect ratio)
-    XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * math::PI, aspect_ratio(ctx), 1.0f, 1000.0f);
-    XMStoreFloat4x4(&ctx->mProj, P);
+    on_resize(ctx);
 }
 
 LRESULT handle_resizing(i32 msg, LPARAM wparam, i32 width, i32 height, RenderContext *rctx) {

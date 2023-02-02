@@ -6,6 +6,8 @@
 #include "lucy_math.h"
 #include "utils.h"
 
+#define ENABLE_MSAA true
+
 struct ColorVertex {
     XMFLOAT3 Pos;
     XMFLOAT4 Color;
@@ -167,9 +169,6 @@ enum class ShaderFile {
 
 LucyResult render_context_init(Arena *arena, RenderContext *out_render_ctx);
 LucyResult recreate_swapchain(Arena *arena, RenderContext *out_render_ctx);
-
 f32 aspect_ratio(RenderContext *rctx);
-
-// todo: this doesn't compile
-//  make a substruct w shader state and use that instead of a macro...
 LucyResult setup_color_shader(Arena *arena, RenderContext *rctx, ShaderFile shader_file, Shader *out_shader);
+void on_resize(RenderContext *rctx);

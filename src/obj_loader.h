@@ -30,9 +30,4 @@ struct ObjFile {
     std::unordered_map<std::string, Material> materials;
 };
 
-bool point_to_end_of_line(Buf *file, i64 *pointer);
-bool point_to_next_line(Buf *file, i64 *pointer);
-bool parse_mtl_line(Arena *arena, i64 *pointer, Buf *file, std::unordered_map<std::string, Material> *materials);
-LucyResult load_mtl(Arena *arena, std::string *file_path, std::unordered_map<std::string, Material> *materials);
-bool parse_line(Arena *arena, ObjParser *parser, Buf *file, ObjFile *obj);
 LucyResult load_obj(Arena *arena, const char *file_path, ObjFile *out);
