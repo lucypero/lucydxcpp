@@ -8,30 +8,6 @@ LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_sta
     rctx->cam_radius = 30.0f;
 
 
-    // loading obj
-    ObjFile skull_obj = {};
-    
-    LucyResult res = load_obj(arena, "Models\\skull\\skull.obj", &skull_obj);
-    // LucyResult res = load_obj(arena, "Models\\cube.obj", &skull_obj);
-    assert(res == LRES_OK);
-
-    //printing obj
-    // for(XMFLOAT3 &p: skull_obj.positions) {
-    //     log("pos: %f %f %f", p.x, p.y, p.z);
-    // }
-
-    // for(XMFLOAT3 &p: skull_obj.normals) {
-    //     log("normals: %f %f %f", p.x, p.y, p.z);
-    // }
-
-    // for(XMFLOAT3 &p: skull_obj.uvs) {
-    //     log("uvs: %f %f", p.x, p.y);
-    // }
-
-    // for(i64 &p: skull_obj.position_indices) {
-    //     log("pos indices: %i", p);
-    // }
-
     XMMATRIX I = XMMatrixIdentity();
     XMStoreFloat4x4(&out_demo_state->mGridWorld, I);
     XMStoreFloat4x4(&out_demo_state->mView, I);
@@ -56,12 +32,6 @@ LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_sta
         XMStoreFloat4x4(&out_demo_state->mSphereWorld[i * 2 + 1],
                         XMMatrixTranslation(+5.0f, 3.5f, -10.0f + i * 5.0f));
     }
-
-    // obj transform
-    XMMATRIX obj_scale = XMMatrixScaling(0.3f, 0.3f, 0.3f);
-    XMMATRIX obj_rot = XMMatrixRotationX(-math::PI / 2.0f);
-    XMMATRIX obj_offset = XMMatrixTranslation(0.0f, 3.0f, 0.0f);
-    XMStoreFloat4x4(&out_demo_state->obj_transform, XMMatrixMultiply(obj_rot, XMMatrixMultiply(obj_scale, obj_offset)));
 
     // BuildGeometryBuffers()
     GeometryGenerator::MeshData box;
@@ -156,52 +126,6 @@ LucyResult demo_init(Arena *arena, RenderContext *rctx, ShapesDemo *out_demo_sta
     iinitData.pSysMem = &indices[0];
     hres = rctx->device->CreateBuffer(&ibd, &iinitData, &out_demo_state->mIB);
     assert(hres == 0);
-
-
-    // creating buffers for custom object
-
-    // ID3D11Buffer *obj_vb;
-    // ID3D11Buffer *obj_ib;
-    // u32 obj_index_count;
-
-    // for now i will just use the position
-    std::vector<ColorVertex> obj_vertices(skull_obj.positions.size());
-
-    for(u32 i = 0; i<skull_obj.positions.size(); ++i) {
-        obj_vertices[i].Pos = skull_obj.positions[i];
-        obj_vertices[i].Color = black;
-    }
-
-    vbd = {};
-    vbd.Usage = D3D11_USAGE_IMMUTABLE;
-    vbd.ByteWidth = sizeof(ColorVertex) * (u32)skull_obj.positions.size();
-    vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    vbd.CPUAccessFlags = 0;
-    vbd.MiscFlags = 0;
-    vinitData = {};
-    vinitData.pSysMem = &obj_vertices[0];
-    hres = rctx->device->CreateBuffer(&vbd, &vinitData, &out_demo_state->obj_vb);
-    assert(hres == 0);
-
-    std::vector<u32> obj_indices(skull_obj.position_indices.size());
-
-    for(u32 i = 0; i<skull_obj.position_indices.size(); ++i) {
-        assert(skull_obj.position_indices[i] >= 0);
-        obj_indices[i] = (u32)skull_obj.position_indices[i] - 1;
-    }
-
-    ibd = {};
-    ibd.Usage = D3D11_USAGE_IMMUTABLE;
-    ibd.ByteWidth = sizeof(u32) * (u32)skull_obj.position_indices.size();
-    ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    ibd.CPUAccessFlags = 0;
-    ibd.MiscFlags = 0;
-    iinitData = {};
-    iinitData.pSysMem = &obj_indices[0];
-    hres = rctx->device->CreateBuffer(&ibd, &iinitData, &out_demo_state->obj_ib);
-    assert(hres == 0);
-
-    out_demo_state->obj_index_count = (u32)skull_obj.position_indices.size();
 
     // SHADER LOADING ------------------------
     hres = setup_color_shader(arena, rctx, ShaderFile::Color, &out_demo_state->shader);

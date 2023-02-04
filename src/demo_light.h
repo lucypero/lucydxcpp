@@ -4,6 +4,7 @@
 #include "proj_types.h"
 #include "utils.h"
 #include "renderer.h"
+#include "obj_loader.h"
 
 #define DEMOSTRUCT LightDemo
 
@@ -16,12 +17,7 @@ struct LightDemo
     // basic shader is in the render ctx so it won't be here.
 
     // object related stuff (the model that we see)
-    ID3D11Buffer *vb;
-    ID3D11Buffer *ib;
-    u32 obj_index_count;
-    u32 obj_vertex_count;
-    XMFLOAT4X4 obj_transform;
-    Material obj_material;
+    RenderObjects render_objs;
 
     // lights
     DirectionalLight dir_lights[3];
@@ -44,6 +40,8 @@ struct LightDemo
     i32 how_many_lights;
 
     bool disable_point_light;
+
+    f32 total_time;
 };
 
 

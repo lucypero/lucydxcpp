@@ -117,9 +117,24 @@ struct BasicEffect {
 
 // todo: separate windows stuff from renderer
 struct RenderContext {
+
+	//maybe this on another struct:
+
     HWND window;
 	i32 client_width;
 	i32 client_height;
+    POINT last_mouse_pos;
+	bool minimized;
+	bool maximized;
+	bool resizing;
+	i32 mouse_wheel_delta;
+
+	// till here
+
+	// not sure where these should be
+    f32 cam_yaw;
+    f32 cam_pitch;
+    f32 cam_radius;
 
     ID3D11Device1 *device;
     ID3D11DeviceContext1 *device_context;
@@ -127,13 +142,6 @@ struct RenderContext {
     ID3D11RenderTargetView *render_target_view;
     ID3D11DepthStencilView *depth_stencil_view;
 	ID3D11Texture2D *depth_stencil_buffer;
-    POINT last_mouse_pos;
-    f32 cam_yaw;
-    f32 cam_pitch;
-    f32 cam_radius;
-	bool minimized;
-	bool maximized;
-	bool resizing;
 
     XMFLOAT4X4 mProj;
 
@@ -150,8 +158,6 @@ struct RenderContext {
     // rasterizer states
     ID3D11RasterizerState *mWireframeRS; // wireframe
     ID3D11RasterizerState *mSolidRS; // solid
-
-	i32 mouse_wheel_delta;
 };
 
 // really basic shader

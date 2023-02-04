@@ -21,21 +21,90 @@ LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_stat
     memcpy(out_demo_state->clear_color, clear_color, sizeof(clear_color));
 
     // loading obj
-    ObjFile the_obj = {};
-    LucyResult res = load_obj(arena, "Models\\skull\\skull.obj", &the_obj);
+    RenderObjects objs = {};
+    // LucyResult res = load_obj(arena, "Models\\skull\\skull.obj", &the_obj);
     // LucyResult res = load_obj(arena, "Models\\plane.obj", &the_obj);
-    // LucyResult res = load_obj(arena, "Models\\mill\\my_mill.obj", &the_obj);
+    LR(load_obj_for_rendering(arena, rctx->device, "Models\\mill\\my_mill.obj", &objs));
     // LucyResult res = load_obj(arena, "Models\\cube.obj", &the_obj);
-    assert(res == LRES_OK);
 
-    // initializing material
-    out_demo_state->obj_material = {
-        .Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.1f),
-        .Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-        .Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 32.0f),
-        // what is this
-        .Reflect = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-    };
+    out_demo_state->render_objs = objs;
+
+    /*
+
+    ObjFile
+    Object
+
+    RenderObjs
+
+    RenderObjs render_objs = {};
+
+    LR(load_obj_for_rendering(arena, "Models\\mill\\my_mill.obj", &render_objs));
+
+    // at render():
+
+    // this should only be 1 pass so don't get scared by this loop
+
+    // set vertex buffer
+
+    for (u32 p = 0; p < techDesc.Passes; ++p) {
+
+        // this could be in a render_obj method
+
+        for(auto const &obj_range: render_obj.obj_ranges) {
+            // set all the shader vars
+            XMMATRIX world = XMLoadFloat4x4(&render_objs.obj_world_mats[i]);
+            XMMATRIX worldInvTranspose = math::InverseTranspose(world);
+            XMMATRIX worldViewProj = world*view*proj;
+
+            rctx->basic_effect.SetWorld(world);
+            rctx->basic_effect.SetWorldInvTranspose(worldInvTranspose);
+            rctx->basic_effect.SetWorldViewProj(worldViewProj);
+
+            for(auto const &mat_range: render_obj.mat_ranges) {
+
+                Material mat = render_objs.mats[mat_range.material];
+		        rctx->basic_effect.SetMaterial(mat);
+
+                u32 start = math::clamp(mat_range.start, obj_range.start, obj_range.end);
+                u32 end = math::clamp(mat_range.end, obj_range.start, obj_range.end);
+
+                // apply
+                tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+
+                // we will not use indexed drawing bc i still don't know how to parsse obj's.
+                rctx->device_context->Draw(start+end, start);
+            }
+        }
+
+        // set all the shader vars
+		XMMATRIX world = XMLoadFloat4x4(&demo_state->obj_transform);
+		XMMATRIX worldInvTranspose = math::InverseTranspose(world);
+		XMMATRIX worldViewProj = world*view*proj;
+
+		rctx->basic_effect.SetWorld(world);
+		rctx->basic_effect.SetWorldInvTranspose(worldInvTranspose);
+		rctx->basic_effect.SetWorldViewProj(worldViewProj);
+		rctx->basic_effect.SetMaterial(&demo_state->obj_material);
+
+        // texture stuff
+	    // XMMATRIX I = XMMatrixIdentity();
+        f32 s = demo_state->uv_scale;
+	    XMMATRIX obj_scale = XMMatrixScaling(s, s, s);
+        rctx->basic_effect.SetTexTransform(obj_scale);
+        rctx->basic_effect.SetTexture(rctx->srv_diffuse);
+        rctx->basic_effect.SetTextureSpecular(rctx->srv_specular);
+
+        // apply
+        tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+
+        //draw
+        // rctx->device_context->DrawIndexed(demo_state->obj_index_count, 0, 0);
+
+        // we will not use indexed drwaing bc i still don't know how to parsse obj's.
+        rctx->device_context->Draw(demo_state->obj_vertex_count, 0);
+    }
+
+    */
 
     // initializing lights lights
 
@@ -66,65 +135,6 @@ LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_stat
         .Pad = 0.0f,
     };
 
-    // creating buffers for custom object
-
-    std::vector<Vertex> obj_vertices(the_obj.position_indices.size());
-    std::vector<u32> obj_indices(the_obj.position_indices.size());
-
-    // for(u32 i = 0; i<the_obj.positions.size(); ++i) {
-    //     obj_vertices[i].Pos = the_obj.positions[i];
-    //     // obj_vertices[i].Color = black;
-    // }
-
-    for(u32 i = 0; i<the_obj.position_indices.size(); ++i) {
-        assert(the_obj.position_indices[i] >= 0);
-        assert(the_obj.normal_indices[i] >= 0);
-        assert(the_obj.uv_indices[i] >= 0);
-        assert(the_obj.normal_indices.size() == the_obj.position_indices.size());
-        assert(the_obj.uv_indices.size() == the_obj.position_indices.size());
-
-        // get pos, get normal, then make vertex and push
-        obj_indices[i] = (u32)the_obj.position_indices[i] - 1;
-
-        obj_vertices[i].Pos = the_obj.positions[the_obj.position_indices[i] - 1];
-        obj_vertices[i].Normal = the_obj.normals[the_obj.normal_indices[i] - 1];
-        obj_vertices[i].Tex = the_obj.uvs[the_obj.uv_indices[i] - 1];
-    }
-
-    D3D11_BUFFER_DESC vbd = {};
-    vbd.Usage = D3D11_USAGE_IMMUTABLE;
-    vbd.ByteWidth = sizeof(Vertex) * (u32)obj_vertices.size();
-    vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    vbd.CPUAccessFlags = 0;
-    vbd.MiscFlags = 0;
-    D3D11_SUBRESOURCE_DATA vinitData = {};
-    vinitData.pSysMem = &obj_vertices[0];
-    HRESULT hres = rctx->device->CreateBuffer(&vbd, &vinitData, &out_demo_state->vb);
-    assert(hres == 0);
-
-    D3D11_BUFFER_DESC ibd = {};
-    ibd.Usage = D3D11_USAGE_IMMUTABLE;
-    ibd.ByteWidth = sizeof(u32) * (u32)the_obj.position_indices.size();
-    ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    ibd.CPUAccessFlags = 0;
-    ibd.MiscFlags = 0;
-    D3D11_SUBRESOURCE_DATA iinitData = {};
-    iinitData.pSysMem = &obj_indices[0];
-    hres = rctx->device->CreateBuffer(&ibd, &iinitData, &out_demo_state->ib);
-    assert(hres == 0);
-
-    out_demo_state->obj_index_count = (u32)the_obj.position_indices.size();
-    out_demo_state->obj_vertex_count = (u32)obj_vertices.size();
-
-
-
-    // transform the obj here
-
-	XMMATRIX obj_scale = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-    XMMATRIX obj_rot = XMMatrixRotationX(0.0f);
-	XMMATRIX obj_offset = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
-	XMStoreFloat4x4(&out_demo_state->obj_transform, XMMatrixMultiply(obj_rot, XMMatrixMultiply(obj_scale, obj_offset)));
-
     out_demo_state->mView = {};
     out_demo_state->mEyePosW = {};
 
@@ -137,6 +147,7 @@ LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_stat
 // update and render (runs every frame)
 void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
 
+    demo_state->total_time += dt;
 
     //imgui stuff here
     ImGui::Checkbox("wireframe mode", &demo_state->do_wireframe_rs);
@@ -198,13 +209,13 @@ void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
         ImGui::TreePop();
     }
 
-    if(ImGui::TreeNode("material")) {
-        imgui_help::float4_edit("m ambient", &demo_state->obj_material.Ambient);
-        imgui_help::float4_edit("m diffuse", &demo_state->obj_material.Diffuse);
-        imgui_help::float4_edit("m specular", &demo_state->obj_material.Specular);
-        ImGui::InputFloat("m shininess", &demo_state->obj_material.Specular.w);
-        ImGui::TreePop();
-    }
+    // if(ImGui::TreeNode("material")) {
+    //     imgui_help::float4_edit("m ambient", &demo_state->obj_material.Ambient);
+    //     imgui_help::float4_edit("m diffuse", &demo_state->obj_material.Diffuse);
+    //     imgui_help::float4_edit("m specular", &demo_state->obj_material.Specular);
+    //     ImGui::InputFloat("m shininess", &demo_state->obj_material.Specular.w);
+    //     ImGui::TreePop();
+    // }
 
 
     ImGui::InputFloat("uv scale", &demo_state->uv_scale);
@@ -254,12 +265,7 @@ void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
     rctx->device_context->IASetPrimitiveTopology(
             D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // todo this should depend on imgui checkbox
     rctx->device_context->RSSetState(rs);
-    UINT stride = sizeof(Vertex);
-    UINT offset = 0;
-    rctx->device_context->IASetVertexBuffers(0, 1, &demo_state->vb, &stride, &offset);
-    rctx->device_context->IASetIndexBuffer(demo_state->ib, DXGI_FORMAT_R32_UINT, 0);
 
 	XMMATRIX view  = XMLoadFloat4x4(&demo_state->mView);
 	XMMATRIX proj  = XMLoadFloat4x4(&rctx->mProj);
@@ -271,10 +277,6 @@ void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
 
 	rctx->basic_effect.SetEyePosW(demo_state->mEyePosW);
 
-    // todo did u initialize all the techs?? i not sure if it does that by default
-
-    // the tech we will use
-
     auto tech = rctx->basic_effect.Light1Tech;
     switch(demo_state->how_many_lights) {
         case 2:
@@ -285,37 +287,56 @@ void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
             break;
     }
 
+    // texture stuff (so far textures are not handled in render_ojbs)
+	// XMMATRIX I = XMMatrixIdentity();
+    f32 s = demo_state->uv_scale;
+	XMMATRIX obj_scale = XMMatrixScaling(s, s, s);
+    rctx->basic_effect.SetTexTransform(obj_scale);
+    rctx->basic_effect.SetTexture(rctx->srv_diffuse);
+    rctx->basic_effect.SetTextureSpecular(rctx->srv_specular);
+
+    // demo_state->render_objs.draw(tech, view, proj, rctx);
+
+
     D3DX11_TECHNIQUE_DESC techDesc;
     tech->GetDesc(&techDesc);
+
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    rctx->device_context->IASetVertexBuffers(0, 1, &demo_state->render_objs.vb, &stride, &offset);
 
     // this should only be 1 pass so don't get scared by this loop
     for (u32 p = 0; p < techDesc.Passes; ++p) {
 
+        // this could be in a render_obj method
+
+        // pick an obj based on time
+        i32 obj_i_to_render = (i32)demo_state->total_time % demo_state->render_objs.obj_ranges.size();
+
+        auto const &obj_range = demo_state->render_objs.obj_ranges[obj_i_to_render];
+
         // set all the shader vars
-		XMMATRIX world = XMLoadFloat4x4(&demo_state->obj_transform);
-		XMMATRIX worldInvTranspose = math::InverseTranspose(world);
-		XMMATRIX worldViewProj = world*view*proj;
+        XMMATRIX world = XMLoadFloat4x4(&demo_state->render_objs.obj_world_mats[obj_i_to_render]);
+        XMMATRIX worldInvTranspose = math::InverseTranspose(world);
+        XMMATRIX worldViewProj = world*view*proj;
 
-		rctx->basic_effect.SetWorld(world);
-		rctx->basic_effect.SetWorldInvTranspose(worldInvTranspose);
-		rctx->basic_effect.SetWorldViewProj(worldViewProj);
-		rctx->basic_effect.SetMaterial(&demo_state->obj_material);
+        rctx->basic_effect.SetWorld(world);
+        rctx->basic_effect.SetWorldInvTranspose(worldInvTranspose);
+        rctx->basic_effect.SetWorldViewProj(worldViewProj);
 
-        // texture stuff
-	    // XMMATRIX I = XMMatrixIdentity();
-        f32 s = demo_state->uv_scale;
-	    XMMATRIX obj_scale = XMMatrixScaling(s, s, s);
-        rctx->basic_effect.SetTexTransform(obj_scale);
-        rctx->basic_effect.SetTexture(rctx->srv_diffuse);
-        rctx->basic_effect.SetTextureSpecular(rctx->srv_specular);
+        for(auto const &mat_range: demo_state->render_objs.mat_ranges) {
 
-        // apply
-        tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+            Material mat = demo_state->render_objs.materials[mat_range.material];
+            rctx->basic_effect.SetMaterial(&mat);
 
-        //draw
-        // rctx->device_context->DrawIndexed(demo_state->obj_index_count, 0, 0);
+            u32 start = math::clamp(mat_range.start, obj_range.start, obj_range.end);
+            u32 end = math::clamp(mat_range.end, obj_range.start, obj_range.end);
 
-        // we will not use indexed drwaing bc i still don't know how to parsse obj's.
-        rctx->device_context->Draw(demo_state->obj_vertex_count, 0);
+            // apply
+            tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
+
+            // we will not use indexed drawing bc i still don't know how to parsse obj's.
+            rctx->device_context->Draw(end - start, start);
+        }
     }
 }

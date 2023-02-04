@@ -15,6 +15,8 @@ enum LucyResult {
     LRES_FAIL = 1
 };
 
+#define LR(a) {LucyResult __lres = (a); assert(__lres == LRES_OK);}
+
 struct ProgramState {
     void *base_mem;
     u64 total_mem_size;

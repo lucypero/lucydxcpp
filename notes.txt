@@ -17,3 +17,13 @@ NOTES:
 load mtl
 have a hashmap from string to material
 fill the hashmap with all the materials, string as key
+
+obj1
+
+v1 v2 v3
+
+
+obj2
+
+v1 v2 v3
+

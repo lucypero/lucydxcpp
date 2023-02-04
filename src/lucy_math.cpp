@@ -5,6 +5,14 @@ namespace math {
         return x < low ? low : (x > high ? high : x);
     }
 
+    i32 clamp(i32 x, i32 low, i32 high) {
+        return x < low ? low : (x > high ? high : x);
+    }
+
+    u32 clamp(u32 x, u32 low, u32 high) {
+        return x < low ? low : (x > high ? high : x);
+    }
+
     f32 _min(f32 a, f32 b) {
         return a < b ? a : b;
     }
