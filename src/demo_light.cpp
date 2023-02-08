@@ -29,83 +29,6 @@ LucyResult demo_init(Arena *arena, RenderContext *rctx, LightDemo *out_demo_stat
 
     out_demo_state->render_objs = objs;
 
-    /*
-
-    ObjFile
-    Object
-
-    RenderObjs
-
-    RenderObjs render_objs = {};
-
-    LR(load_obj_for_rendering(arena, "Models\\mill\\my_mill.obj", &render_objs));
-
-    // at render():
-
-    // this should only be 1 pass so don't get scared by this loop
-
-    // set vertex buffer
-
-    for (u32 p = 0; p < techDesc.Passes; ++p) {
-
-        // this could be in a render_obj method
-
-        for(auto const &obj_range: render_obj.obj_ranges) {
-            // set all the shader vars
-            XMMATRIX world = XMLoadFloat4x4(&render_objs.obj_world_mats[i]);
-            XMMATRIX worldInvTranspose = math::InverseTranspose(world);
-            XMMATRIX worldViewProj = world*view*proj;
-
-            rctx->basic_effect.SetWorld(world);
-            rctx->basic_effect.SetWorldInvTranspose(worldInvTranspose);
-            rctx->basic_effect.SetWorldViewProj(worldViewProj);
-
-            for(auto const &mat_range: render_obj.mat_ranges) {
-
-                Material mat = render_objs.mats[mat_range.material];
-		        rctx->basic_effect.SetMaterial(mat);
-
-                u32 start = math::clamp(mat_range.start, obj_range.start, obj_range.end);
-                u32 end = math::clamp(mat_range.end, obj_range.start, obj_range.end);
-
-                // apply
-                tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
-
-                // we will not use indexed drawing bc i still don't know how to parsse obj's.
-                rctx->device_context->Draw(start+end, start);
-            }
-        }
-
-        // set all the shader vars
-		XMMATRIX world = XMLoadFloat4x4(&demo_state->obj_transform);
-		XMMATRIX worldInvTranspose = math::InverseTranspose(world);
-		XMMATRIX worldViewProj = world*view*proj;
-
-		rctx->basic_effect.SetWorld(world);
-		rctx->basic_effect.SetWorldInvTranspose(worldInvTranspose);
-		rctx->basic_effect.SetWorldViewProj(worldViewProj);
-		rctx->basic_effect.SetMaterial(&demo_state->obj_material);
-
-        // texture stuff
-	    // XMMATRIX I = XMMatrixIdentity();
-        f32 s = demo_state->uv_scale;
-	    XMMATRIX obj_scale = XMMatrixScaling(s, s, s);
-        rctx->basic_effect.SetTexTransform(obj_scale);
-        rctx->basic_effect.SetTexture(rctx->srv_diffuse);
-        rctx->basic_effect.SetTextureSpecular(rctx->srv_specular);
-
-        // apply
-        tech->GetPassByIndex(p)->Apply(0, rctx->device_context);
-
-        //draw
-        // rctx->device_context->DrawIndexed(demo_state->obj_index_count, 0, 0);
-
-        // we will not use indexed drwaing bc i still don't know how to parsse obj's.
-        rctx->device_context->Draw(demo_state->obj_vertex_count, 0);
-    }
-
-    */
-
     // initializing lights lights
 
     DirectionalLight dir_light = {
@@ -269,7 +192,7 @@ void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
 
 	XMMATRIX view  = XMLoadFloat4x4(&demo_state->mView);
 	XMMATRIX proj  = XMLoadFloat4x4(&rctx->mProj);
-	XMMATRIX viewProj = view*proj;
+	// XMMATRIX viewProj = view*proj;
 
 	// Set per frame constants.
 	rctx->basic_effect.SetDirLights(dir_lights);
@@ -296,7 +219,6 @@ void demo_update_render(RenderContext *rctx, LightDemo *demo_state, f32 dt) {
     rctx->basic_effect.SetTextureSpecular(rctx->srv_specular);
 
     // demo_state->render_objs.draw(tech, view, proj, rctx);
-
 
     D3DX11_TECHNIQUE_DESC techDesc;
     tech->GetDesc(&techDesc);

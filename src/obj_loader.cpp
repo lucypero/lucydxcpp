@@ -224,7 +224,14 @@ LucyResult load_obj(Arena *arena, const char *file_path, ObjFile *out) {
         assert(res == LRES_OK);
     }
 
-    //todo: filter empty objects
+    // filter empty objects
+    for (auto i = out->objects.begin(), last = out->objects.end(); i != last; ) {
+        if (i->second.position_indices.size() <= 0) {
+            i = out->objects.erase(i);
+        } else {
+            ++i;
+        }
+    }
 
     arena_restore(arena, checkpoint);
 

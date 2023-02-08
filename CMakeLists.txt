@@ -10,7 +10,7 @@ set(MY_RELEASE_OPTIONS /O2 /MD)
 
 
 add_compile_options(
-    /W3 /WX /EHsc /FC /nologo /Felucydxcpp
+    /W3 /WX /EHsc /FC /nologo 
     "$<$<CONFIG:Debug>:${MY_DEBUG_OPTIONS}>"
     "$<$<CONFIG:Release>:${MY_RELEASE_OPTIONS}>"
 )

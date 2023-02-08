@@ -250,11 +250,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     void *base_mem = VirtualAlloc(0, TOTAL_MEM, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     assert(base_mem != 0);
 
-    ProgramState program_state = {
-            .base_mem = base_mem,
-            .total_mem_size = TOTAL_MEM,
-    };
-
     #ifdef DEBUG
     log("u are in debug");
     #else
