@@ -2,6 +2,8 @@
 
 WIP
 
+I suspended this repo in favor of this one: [lucy book exercises](https://github.com/lucypero/lucybookexercises) where I port the book code and complete the book exercises.
+
 For now this is just to learn 3D rendering basics as I follow a [DirectX 11 book](https://www.amazon.com/Introduction-3D-Game-Programming-DirectX/dp/1936420228)
 
 # How to build
